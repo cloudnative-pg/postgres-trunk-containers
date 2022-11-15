@@ -200,6 +200,7 @@ jobs:
     name: E2E test suite
     needs:
       - e2e-local
+    if:  (always() && !cancelled())
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
