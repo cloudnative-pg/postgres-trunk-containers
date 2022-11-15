@@ -141,19 +141,6 @@ RUN set -eux ; \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
-		AWK="mawk" \
-		MKDIR_P="/bin/mkdir -p" \
-		PROVE="/usr/bin/prove" \
-		PYTHON="/usr/bin/python3" \
-		TAR="/bin/tar" \
-		XSLTPROC="xsltproc --nonet" \
-		CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
-		LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
-		LLVM_CONFIG="/usr/bin/llvm-config-11" \
-		CLANG="/usr/bin/clang-11" \
-		build_alias="x86_64-linux-gnu" \
-		CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
-		CXXFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security" \
 	; \
 	make -j "$(nproc)" world-bin ; \
 	make install-world-bin ; \
