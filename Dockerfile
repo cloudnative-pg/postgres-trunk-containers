@@ -141,6 +141,10 @@ RUN set -eux ; \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
+        CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
+        LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
+        CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
+        CXXFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security" \
 	; \
 	make -j "$(nproc)" world-bin ; \
 	make install-world-bin ; \
