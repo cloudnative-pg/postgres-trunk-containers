@@ -42,11 +42,13 @@ RUN set -ex; \
 		zstd \
 		$(cat /build-deps.txt); \
 	rm -rf /var/lib/apt/lists/*;
-
 # explicitly set user/group IDs
 RUN set -eux; \
 	groupadd -r postgres --gid=999; \
+# https://salsa.debian.org/postgresql/postgresql-common/blob/997d842ee744687d99a2b2d95c1083a2615c79e8/debian/postgresql-common.postinst#L32-35
 	useradd -r -g postgres --uid=26 --home-dir=/var/lib/postgresql --shell=/bin/bash postgres; \
+# also create the postgres user's home directory with appropriate permissions
+# see https://github.com/docker-library/postgres/issues/274
 	mkdir -p /var/lib/postgresql; \
 	chown -R postgres:postgres /var/lib/postgresql
 
@@ -91,6 +93,7 @@ ENV PG_MAJOR 16
 ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 
 # Build PostgreSQL
+# Partially refer to https://github.com/docker-library/postgres/blob/master/15/alpine/Dockerfile#L29-L147
 RUN set -eux ; \
 	mkdir -p /usr/src/postgresql ; \
 	git clone -b master --single-branch https://git.postgresql.org/git/postgresql.git /usr/src/postgresql ; \
@@ -138,19 +141,10 @@ RUN set -eux ; \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
-		AWK="mawk" \
-		MKDIR_P="/bin/mkdir -p" \
-		PROVE="/usr/bin/prove" \
-		PYTHON="/usr/bin/python3" \
-		TAR="/bin/tar" \
-		XSLTPROC="xsltproc --nonet" \
-		CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
-		LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
-		LLVM_CONFIG="/usr/bin/llvm-config-11" \
-		CLANG="/usr/bin/clang-11" \
-		build_alias="x86_64-linux-gnu" \
-		CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
-		CXXFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security" \
+        CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
+        LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
+        CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
+        CXXFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security" \
 	; \
 	make -j "$(nproc)" world-bin ; \
 	make install-world-bin ; \
@@ -159,6 +153,7 @@ RUN set -eux ; \
 	postgres --version
 
 # Build PgAudit
+# See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
 RUN set -eux ; \
 	mkdir -p /usr/src/pgaudit ; \
 	git clone -b master --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \

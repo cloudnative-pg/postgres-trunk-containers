@@ -8,7 +8,8 @@ on:
 env:
   GOLANG_VERSION: "1.18.x"
   KIND_VERSION: "v0.17.0"
-  PG_IMAGE_NAME: "ghcr.io/cloudnative-pg/postgresql-trunk:16-devel"
+  REGISTRY: "ghcr.io/cloudnative-pg/postgresql-trunk"
+  POSTGRES_VERSION: "16-devel"
 
 defaults:
   run:
@@ -16,14 +17,26 @@ defaults:
     shell: 'bash -Eeuo pipefail -x {0}'
 
 jobs:
-
   build-pg:
-    name: PostgreSQL 16-devel
+    name: Build the Trunk of PostgreSQL
     runs-on: ubuntu-20.04
     permissions:
       contents: read
       packages: write
+    outputs:
+      POSTGRES_IMG: ${{ steps.set-env.outputs.POSTGRES_IMG }}
+      E2E_PRE_ROLLING_UPDATE_IMG: ${{ steps.set-env.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
     steps:
+    - name: Set Global Env Vars
+      id: set-env
+      run: |
+        postgres_img="${{ env.REGISTRY }}:${{ env.POSTGRES_VERSION }}"
+        # The version of operator to upgrade FROM, in the rolling upgrade E2E test
+        e2e_pre_rolling_update_image="${postgres_img}-1"
+        
+        echo "POSTGRES_IMG=${postgres_img}" >> $GITHUB_OUTPUT
+        echo "E2E_PRE_ROLLING_UPDATE_IMG=${e2e_pre_rolling_update_image}" >> $GITHUB_OUTPUT
+
     - name: Checkout Code
       uses: actions/checkout@v3
 
@@ -41,8 +54,8 @@ jobs:
         push: true
         load: false
         tags: |
-          ${{ env.PG_IMAGE_NAME }}
-          ${{ env.PG_IMAGE_NAME }}-1
+          ${{ steps.set-env.outputs.POSTGRES_IMG }}
+          ${{ steps.set-env.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
 
   e2e-local:
     name: Run E2E on local executors
@@ -52,16 +65,13 @@ jobs:
     env:
       TEST_DEPTH: 4
       K8S_VERSION: "v1.25.3"
-      POSTGRES_VERSION: "16-devel"
-      ID: "local-PostgreSQL-16-devel"
-      POSTGRES_IMG: "ghcr.io/cloudnative-pg/postgresql-trunk:16-devel"
-      # The version of operator to upgrade FROM, in the rolling upgrade E2E test
-      E2E_PRE_ROLLING_UPDATE_IMG: "ghcr.io/cloudnative-pg/postgresql-trunk:16-devel-1"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
       DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
+      POSTGRES_IMG: ${{ needs.build-pg.outputs.POSTGRES_IMG }}
+      E2E_PRE_ROLLING_UPDATE_IMG: ${{ needs.build-pg.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
       DEBUG: "true"
       BUILD_IMAGE: "true"
       E2E_DEFAULT_STORAGE_CLASS: standard
@@ -141,7 +151,7 @@ jobs:
         if: (always() && !cancelled())
         run: |
           set +x
-          echo '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
+          echo '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "local-PostgreSQL"-${{ env.POSTGRES_VERSION }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
           python .github/generate-test-artifacts.py \
             -o testartifacts-${{ env.ID }} \
             -f tests/e2e/out/report.json \
