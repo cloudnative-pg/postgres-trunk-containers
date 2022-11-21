@@ -33,7 +33,7 @@ jobs:
         postgres_img="${{ env.REGISTRY }}:${{ env.POSTGRES_VERSION }}"
         # The version of operator to upgrade FROM, in the rolling upgrade E2E test
         e2e_pre_rolling_update_image="${postgres_img}-1"
-        
+
         echo "POSTGRES_IMG=${postgres_img}" >> $GITHUB_OUTPUT
         echo "E2E_PRE_ROLLING_UPDATE_IMG=${e2e_pre_rolling_update_image}" >> $GITHUB_OUTPUT
 
@@ -70,6 +70,8 @@ jobs:
       DOCKER_USERNAME: ${{ github.actor }}
       DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
+      TEST_UPGRADE_TO_V1: false
+      BRANCH_NAME: main
       POSTGRES_IMG: ${{ needs.build-pg.outputs.POSTGRES_IMG }}
       E2E_PRE_ROLLING_UPDATE_IMG: ${{ needs.build-pg.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
       DEBUG: "true"
