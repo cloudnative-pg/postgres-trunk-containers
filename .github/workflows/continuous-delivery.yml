@@ -65,6 +65,7 @@ jobs:
     env:
       TEST_DEPTH: 4
       K8S_VERSION: "v1.25.0"
+      ID: "local"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
