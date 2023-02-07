@@ -101,12 +101,13 @@ RUN set -eux ; \
 	./configure \
 		--build=x86_64-linux-gnu \
 		--prefix=/usr \
-		--includedir=/usr/include \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--sysconfdir=/etc \
-		--localstatedir=/var \
-		--libdir=/usr/lib/x86_64-linux-gnu \
+		--enable-debug \
+		--enable-cassert \
+		--enable-nls \
+		--enable-thread-safety \
+		--enable-dtrace \
+		--enable-tap-tests \
+		--disable-rpath \
 		--with-tcl \
 		--with-perl \
 		--with-python \
@@ -114,37 +115,33 @@ RUN set -eux ; \
 		--with-openssl \
 		--with-libxml \
 		--with-libxslt \
-		--mandir=/usr/share/postgresql/$PG_MAJOR/man \
-		--docdir=/usr/share/doc/postgresql-doc-$PG_MAJOR \
-		--sysconfdir=/etc/postgresql-common \
-		--datarootdir=/usr/share/ \
-		--datadir=/usr/share/postgresql/$PG_MAJOR \
-		--bindir=/usr/lib/postgresql/$PG_MAJOR/bin \
-		--libdir=/usr/lib/x86_64-linux-gnu/ \
-		--libexecdir=/usr/lib/postgresql/ \
-		--includedir=/usr/include/postgresql/ \
-		--enable-nls \
-		--enable-thread-safety \
-		--enable-debug \
-		--enable-dtrace \
-		--disable-rpath \
 		--with-uuid=e2fs \
 		--with-gnu-ld \
 		--with-gssapi \
 		--with-ldap \
 		--with-pgport=5432 \
 		--with-system-tzdata=/usr/share/zoneinfo \
-		--enable-tap-tests \
 		--with-icu \
 		--with-llvm \
 		--with-lz4 \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
-        CFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
-        LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
-        CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
-        CXXFLAGS="-g -O2 -fstack-protector-strong -Wformat -Werror=format-security" \
+		--datarootdir=/usr/share/ \
+		--infodir=/usr/share/info \
+		--localstatedir=/var \
+		--sysconfdir=/etc/postgresql-common \
+		--libexecdir=/usr/lib/postgresql/ \
+		--includedir=/usr/include/postgresql/ \
+		--mandir=/usr/share/postgresql/$PG_MAJOR/man \
+		--docdir=/usr/share/doc/postgresql-doc-$PG_MAJOR \
+		--datadir=/usr/share/postgresql/$PG_MAJOR \
+		--bindir=/usr/lib/postgresql/$PG_MAJOR/bin \
+		--libdir=/usr/lib/x86_64-linux-gnu/ \
+		CFLAGS="-g -Og -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
+		LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
+		CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
+		CXXFLAGS="-g -Og -fstack-protector-strong -Wformat -Werror=format-security" \
 	; \
 	make -j "$(nproc)" world-bin ; \
 	make install-world-bin ; \
@@ -154,13 +151,14 @@ RUN set -eux ; \
 
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-RUN set -eux ; \
-	mkdir -p /usr/src/pgaudit ; \
-	git clone -b master --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
-	cd /usr/src/pgaudit ; \
-	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
-	cd / ; \
-	rm -rf /usr/src/pgaudit
+# TODO: reinstate PgAudit once v16 support is ready
+# RUN set -eux ; \
+# 	mkdir -p /usr/src/pgaudit ; \
+# 	git clone -b master --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
+# 	cd /usr/src/pgaudit ; \
+# 	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
+# 	cd / ; \
+# 	rm -rf /usr/src/pgaudit
 
 # Purge build dependencies
 RUN set -xe ; \
