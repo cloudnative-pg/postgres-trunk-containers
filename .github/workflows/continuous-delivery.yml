@@ -82,7 +82,13 @@ jobs:
       DOCKER_REGISTRY_MIRROR: https://mirror.gcr.io
     steps:
       - name: Cleanup Disk
-        uses: curoky/cleanup-disk-action@v2.0
+        uses: jlumbroso/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
 
       - name: Cleanup docker cache
         run: |
