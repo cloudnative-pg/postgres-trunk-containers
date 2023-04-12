@@ -66,6 +66,7 @@ jobs:
       TEST_DEPTH: 4
       K8S_VERSION: "v1.25.3"
       ID: "local"
+      POSTGRES_KIND: "PostgreSQL"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
@@ -160,16 +161,16 @@ jobs:
         if: (always() && !cancelled())
         run: |
           set +x
-          echo '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "local-PostgreSQL"-${{ env.POSTGRES_VERSION }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
+          echo '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "local-PostgreSQL"-${{ env.POSTGRES_VERSION }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
           python .github/generate-test-artifacts.py \
             -o testartifacts-${{ env.ID }} \
             -f tests/e2e/out/report.json \
-            -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
+            -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
           if [ -f tests/e2e/out/upgrade_report.json ]; then
             python .github/generate-test-artifacts.py \
               -o testartifacts-${{ env.ID }} \
               -f tests/e2e/out/upgrade_report.json \
-              -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
+              -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${{github.head_ref}}", "refname": "${{github.ref_name}}" }'
           fi
 
       - name: Archive test artifacts
