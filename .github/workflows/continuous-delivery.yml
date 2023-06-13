@@ -19,7 +19,7 @@ defaults:
 jobs:
   build-pg:
     name: Build the Trunk of PostgreSQL
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: write
@@ -61,7 +61,7 @@ jobs:
     name: Run E2E on local executors
     needs:
       - build-pg
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       TEST_DEPTH: 4
       K8S_VERSION: "v1.27.1"
@@ -216,7 +216,7 @@ jobs:
         needs.e2e-local.result == 'success' ||
         needs.e2e-local.result == 'failure'
       )
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Create a directory for the artifacts
         run: mkdir test-artifacts
