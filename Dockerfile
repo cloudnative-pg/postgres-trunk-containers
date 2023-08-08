@@ -151,10 +151,9 @@ RUN set -eux ; \
 
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-# TODO: reinstate PgAudit once v16 support is ready
 RUN set -eux ; \
 	mkdir -p /usr/src/pgaudit ; \
-	git clone -b dev/pg16 --single-branch  https://github.com/gbartolini/pgaudit.git /usr/src/pgaudit ; \
+	git clone -b master --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
 	cd /usr/src/pgaudit ; \
 	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
 	cd / ; \
