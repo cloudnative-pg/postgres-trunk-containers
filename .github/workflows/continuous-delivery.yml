@@ -79,8 +79,11 @@ jobs:
       DEBUG: "true"
       BUILD_IMAGE: "true"
       E2E_DEFAULT_STORAGE_CLASS: standard
+      E2E_CSI_STORAGE_CLASS: csi-hostpath-sc
+      E2E_DEFAULT_VOLUMESNAPSHOT_CLASS: csi-hostpath-snapclass
       LOG_DIR: ${{ github.workspace }}/kind-logs/
       DOCKER_REGISTRY_MIRROR: https://mirror.gcr.io
+      TEST_CLOUD_VENDOR: "local"
     steps:
       - name: Cleanup Disk
         uses: jlumbroso/free-disk-space@main
