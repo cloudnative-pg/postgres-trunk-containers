@@ -6,10 +6,10 @@ on:
 
 # set up environment variables to be used across all the jobs
 env:
-  GOLANG_VERSION: "1.20.x"
+  GOLANG_VERSION: "1.21.x"
   KIND_VERSION: "v0.20.0"
   REGISTRY: "ghcr.io/cloudnative-pg/postgresql-trunk"
-  POSTGRES_VERSION: "16-devel"
+  POSTGRES_VERSION: "17-devel"
 
 defaults:
   run:
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       TEST_DEPTH: 4
-      K8S_VERSION: "v1.27.3"
+      K8S_VERSION: "v1.28.0"
       ID: "local"
       POSTGRES_KIND: "PostgreSQL"
 

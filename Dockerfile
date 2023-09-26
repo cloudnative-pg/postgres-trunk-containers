@@ -20,7 +20,7 @@ FROM debian:bullseye-slim
 # Do not split the description, otherwise we will see a blank space in the labels
 LABEL name="PostgreSQL Container Images" \
       vendor="The CloudNativePG Contributors" \
-      version="16-devel" \
+      version="17-devel" \
       summary="PostgreSQL Container images." \
       description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bullseye-slim."
 
@@ -89,7 +89,7 @@ ENV LANG en_US.utf8
 
 RUN mkdir /docker-entrypoint-initdb.d
 
-ENV PG_MAJOR 16
+ENV PG_MAJOR 17
 ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 
 # Build PostgreSQL
