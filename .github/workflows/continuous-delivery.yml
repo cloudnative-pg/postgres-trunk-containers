@@ -1,6 +1,11 @@
 name: continuous-delivery
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "branch name used to pull the operator (default: main)"
+        required: true
+        default: "main"
   schedule:
   - cron:  '0 1 * * *'
 
@@ -108,7 +113,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: cloudnative-pg/cloudnative-pg
-          ref: main
+          ref: ${{ env.BRANCH }}
           fetch-depth: 0
 
       - name: Install Go
