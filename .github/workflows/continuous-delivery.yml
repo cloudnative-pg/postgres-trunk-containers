@@ -173,7 +173,7 @@ jobs:
 
       - name: Archive test artifacts
         if: (always() && !cancelled())
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: testartifacts-local
           path: testartifacts-${{ env.ID }}/
@@ -197,7 +197,7 @@ jobs:
       # Archive logs for failed test cases if there are any
       - name: Archive Kind logs
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kind-logs-${{ env.ID }}
           path: kind-logs/
@@ -205,7 +205,7 @@ jobs:
 
       - name: Archive e2e failure contexts
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-failure-contexts-${{ env.ID }}
           path: |
