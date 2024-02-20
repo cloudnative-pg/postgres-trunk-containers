@@ -130,7 +130,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Prepare the environment
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_seconds: 120
           max_attempts: 3
