@@ -42,6 +42,7 @@ RUN set -ex; \
 		zstd \
 		$(cat /build-deps.txt); \
 	rm -rf /var/lib/apt/lists/*;
+
 # explicitly set user/group IDs
 RUN set -eux; \
 	groupadd -r postgres --gid=999; \
@@ -54,7 +55,7 @@ RUN set -eux; \
 
 # grab gosu for easy step-down from root
 # https://github.com/tianon/gosu/releases
-ENV GOSU_VERSION 1.14
+ENV GOSU_VERSION 1.17
 RUN set -eux; \
 	savedAptMark="$(apt-mark showmanual)"; \
 	apt-get update; \
@@ -84,7 +85,9 @@ RUN set -eux; \
 		! grep -q '/usr/share/locale' /etc/dpkg/dpkg.cfg.d/docker; \
 	fi; \
 	apt-get update; apt-get install -y --no-install-recommends locales; rm -rf /var/lib/apt/lists/*; \
-	localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+	echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen; \
+	locale-gen; \
+	locale -a | grep 'en_US.utf8'
 ENV LANG en_US.utf8
 
 RUN mkdir /docker-entrypoint-initdb.d
@@ -93,7 +96,7 @@ ENV PG_MAJOR 17
 ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 
 # Build PostgreSQL
-# Partially refer to https://github.com/docker-library/postgres/blob/master/15/alpine/Dockerfile#L29-L147
+# Partially refer to https://github.com/docker-library/postgres/blob/master/16/alpine3.19/Dockerfile#L33-L160
 RUN set -eux ; \
 	mkdir -p /usr/src/postgresql ; \
 	git clone -b master --single-branch https://git.postgresql.org/git/postgresql.git /usr/src/postgresql ; \
@@ -165,13 +168,16 @@ RUN set -xe ; \
 
 # Even though we compile from source, we still need PGDG to gather an updated version of psycopg2
 RUN set -ex; \
+# pub   4096R/ACCC4CF8 2011-10-13 [expires: 2019-07-02]
+#       Key fingerprint = B97B 0AFC AA1A 47F0 44F2  44A0 7FCC 7D46 ACCC 4CF8
+# uid                  PostgreSQL Debian Repository
 	key='B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8'; \
 	export GNUPGHOME="$(mktemp -d)"; \
+	mkdir -p /usr/local/share/keyrings/; \
 	gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"; \
-	gpg --batch --export "$key" > /etc/apt/trusted.gpg.d/postgres.gpg; \
-	command -v gpgconf > /dev/null && gpgconf --kill all; \
-	rm -rf "$GNUPGHOME"; \
-	apt-key list
+	gpg --batch --export --armor "$key" > /usr/local/share/keyrings/postgres.gpg.asc; \
+	gpgconf --kill all; \
+	rm -rf "$GNUPGHOME"
 
 # Install barman-cloud
 RUN set -xe; \
@@ -194,11 +200,11 @@ RUN set -eux; \
 	sed -ri "s!^#?(listen_addresses)\s*=\s*\S+.*!\1 = '*'!" /usr/share/postgresql/postgresql.conf.sample; \
 	grep -F "listen_addresses = '*'" /usr/share/postgresql/postgresql.conf.sample
 
-RUN mkdir -p /var/run/postgresql && chown -R postgres:postgres /var/run/postgresql && chmod 2777 /var/run/postgresql
+RUN mkdir -p /var/run/postgresql && chown -R postgres:postgres /var/run/postgresql && chmod 3777 /var/run/postgresql
 
 ENV PGDATA /var/lib/postgresql/data
-# this 777 will be replaced by 700 at runtime (allows semi-arbitrary "--user" values)
-RUN mkdir -p "$PGDATA" && chown -R postgres:postgres "$PGDATA" && chmod 777 "$PGDATA"
+# this 1777 will be replaced by 0700 at runtime (allows semi-arbitrary "--user" values)
+RUN mkdir -p "$PGDATA" && chown -R postgres:postgres "$PGDATA" && chmod 1777 "$PGDATA"
 VOLUME /var/lib/postgresql/data
 
 # DoD 2.3 - remove setuid/setgid from any binary that not strictly requires it, and before doing that list them on the stdout
