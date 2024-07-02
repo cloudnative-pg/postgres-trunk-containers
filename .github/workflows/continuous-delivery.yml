@@ -12,8 +12,8 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   GOLANG_VERSION: "1.22.x"
-  KIND_VERSION: "v0.22.0"
-  K8S_VERSION: "v1.29.0"
+  KIND_VERSION: "v0.23.0"
+  K8S_VERSION: "v1.30.2"
   REGISTRY: "ghcr.io/cloudnative-pg/postgresql-trunk"
   POSTGRES_VERSION: "17-devel"
 
