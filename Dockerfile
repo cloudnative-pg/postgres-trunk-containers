@@ -15,14 +15,14 @@
 # limitations under the License.
 #
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Do not split the description, otherwise we will see a blank space in the labels
 LABEL name="PostgreSQL Container Images" \
       vendor="The CloudNativePG Contributors" \
       version="17-devel" \
       summary="PostgreSQL Container images." \
-      description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bullseye-slim."
+      description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bookworm-slim."
 
 COPY build-deps.txt /
 
@@ -36,7 +36,7 @@ RUN set -ex; \
 		ssl-cert \
 		libnss-wrapper \
 		libxml2 \
-		libllvm11 \
+		libllvm16 \
 		libxslt1.1 \
 		xz-utils \
 		zstd \
@@ -101,6 +101,8 @@ RUN set -eux ; \
 	mkdir -p /usr/src/postgresql ; \
 	git clone -b master --single-branch https://git.postgresql.org/git/postgresql.git /usr/src/postgresql ; \
 	cd /usr/src/postgresql ; \
+	export LLVM_CONFIG="/usr/lib/llvm-16/bin/llvm-config" ; \
+	export CLANG=clang-16 ; \
 	./configure \
 		--build=x86_64-linux-gnu \
 		--prefix=/usr \
@@ -181,15 +183,26 @@ RUN set -ex; \
 
 # Install barman-cloud
 RUN set -xe; \
-	echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main $PG_MAJOR" > /etc/apt/sources.list.d/pgdg.list; \
+	aptRepo="[ signed-by=/usr/local/share/keyrings/postgres.gpg.asc ] http://apt.postgresql.org/pub/repos/apt/ bookworm-pgdg main $PG_MAJOR"; \
+	echo "deb $aptRepo" > /etc/apt/sources.list.d/pgdg.list; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
+		# TODO: Remove build deps once barman unpins the snappy version or
+		# https://github.com/EnterpriseDB/barman/issues/905 is completed
+		build-essential python3-dev libsnappy-dev \
 		python3-pip \
 		python3-psycopg2 \
 		python3-setuptools \
 	; \
-	pip3 install --upgrade pip; \
-	pip3 install barman[cloud,azure,snappy,google]; \
+	pip3 install --break-system-packages --upgrade pip; \
+	pip3 install --break-system-packages barman[cloud,azure,snappy,google]; \
+	# TODO: Remove build deps once barman unpins the snappy version or
+	# https://github.com/EnterpriseDB/barman/issues/905 is completed
+	apt-get remove -y --purge --autoremove \
+		build-essential \
+		python3-dev \
+		libsnappy-dev \
+	; \
 	rm -rf /var/lib/apt/lists/*;
 
 # make the sample config easier to munge (and "correct by default")

@@ -1,13 +1,13 @@
 bison
 build-essential
-clang
+clang-16
 flex
 gettext
 git
 libedit-dev
 libipc-run-perl
 libkrb5-dev
-libldap2-dev
+libldap-dev
 liblz4-dev
 libpam0g-dev
 libperl-dev
@@ -17,7 +17,7 @@ libssl-dev
 libsystemd-dev
 libxslt1-dev
 libzstd-dev
-llvm-dev
+llvm-16-dev
 pkg-config
 python3-dev
 systemtap-sdt-dev
