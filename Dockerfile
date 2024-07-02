@@ -15,14 +15,14 @@
 # limitations under the License.
 #
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Do not split the description, otherwise we will see a blank space in the labels
 LABEL name="PostgreSQL Container Images" \
       vendor="The CloudNativePG Contributors" \
       version="17-devel" \
       summary="PostgreSQL Container images." \
-      description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bullseye-slim."
+      description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bookworm-slim."
 
 COPY build-deps.txt /
 
@@ -181,7 +181,8 @@ RUN set -ex; \
 
 # Install barman-cloud
 RUN set -xe; \
-	echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main $PG_MAJOR" > /etc/apt/sources.list.d/pgdg.list; \
+	aptRepo="[ signed-by=/usr/local/share/keyrings/postgres.gpg.asc ] http://apt.postgresql.org/pub/repos/apt/ bookworm-pgdg main $PG_MAJOR"; \
+	echo "deb $aptRepo" > /etc/apt/sources.list.d/pgdg.list; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		python3-pip \
