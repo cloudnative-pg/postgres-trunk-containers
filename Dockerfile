@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+FROM debian:bookworm-slim
+
 ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
-
-FROM debian:bookworm-slim
 
 # Do not split the description, otherwise we will see a blank space in the labels
 LABEL name="PostgreSQL Container Images" \

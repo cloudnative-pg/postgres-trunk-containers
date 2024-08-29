@@ -1,7 +1,6 @@
 name: Build Image
 
 on:
-  push:
   workflow_dispatch:
     inputs:
       extra_tag:
@@ -9,11 +8,11 @@ on:
         required: false
         default: ""
       pg_repo:
-        description: "Name of the PostgreSQL source Git repo"
+        description: "Name of the target PG repository"
         required: true
         default: "https://git.postgresql.org/git/postgresql.git"
       pg_branch:
-        description: "Name of the branch in the PostgreSQL source Git repo"
+        description: "Name of the branch in the target PG repository"
         required: true
         default: "master"
 
@@ -38,6 +37,14 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Set optional extra tag
+      run: |
+        EXTRA_TAG=""
+        if [[ "${{ github.event.inputs.extra_tag }}" != "" ]]; then
+          EXTRA_TAG="${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}"
+        fi
+        echo "EXTRA_TAG=${EXTRA_TAG}" >> $GITHUB_ENV
+
     - name: Log in to the GitHub Container registry
       uses: docker/login-action@v3
       with:
@@ -53,7 +60,7 @@ jobs:
         load: false
         tags: |
           ${{ env.REGISTRY }}:${{ env.TAG }}
-          ${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}
+          ${{ env.EXTRA_TAG }}
         build-args: |
           PG_REPO=${{ github.event.inputs.pg_repo }}
           PG_BRANCH=${{ github.event.inputs.pg_branch }}
