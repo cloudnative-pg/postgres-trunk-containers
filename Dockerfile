@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
+ARG PG_BRANCH=master
 
 FROM debian:bookworm-slim
 
@@ -99,7 +101,7 @@ ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 # Partially refer to https://github.com/docker-library/postgres/blob/master/16/alpine3.19/Dockerfile#L33-L160
 RUN set -eux ; \
 	mkdir -p /usr/src/postgresql ; \
-	git clone -b master --single-branch https://git.postgresql.org/git/postgresql.git /usr/src/postgresql ; \
+	git clone -b $PG_BRANCH --single-branch $PG_REPO /usr/src/postgresql ; \
 	cd /usr/src/postgresql ; \
 	export LLVM_CONFIG="/usr/lib/llvm-16/bin/llvm-config" ; \
 	export CLANG=clang-16 ; \
