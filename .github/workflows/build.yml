@@ -13,7 +13,7 @@ on:
         required: true
         default: "https://git.postgresql.org/git/postgresql.git"
       pg_branch:
-        description: "Name of the branch in the target PG repository"
+        description: "Name of the branch in the PostgreSQL source Git repo"
         required: true
         default: "master"
 
