@@ -9,7 +9,7 @@ on:
         required: false
         default: ""
       pg_repo:
-        description: "Name of the target PG repository"
+        description: "Name of the PostgreSQL source Git repo"
         required: true
         default: "https://git.postgresql.org/git/postgresql.git"
       pg_branch:
