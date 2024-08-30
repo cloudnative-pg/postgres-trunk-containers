@@ -1,0 +1,7 @@
+{
+  "PG_IMAGE": "ghcr.io/cloudnative-pg/postgresql-trunk:18-devel",
+  "PG_MAJOR": 18,
+  "CNPG_BRANCH": "main",
+  "TEST_DEPTH": 4,
+  "FEATURE_TYPE": ""
+}
