@@ -14,7 +14,7 @@ env:
   GOLANG_VERSION: "1.22.x"
   KIND_VERSION: "v0.23.0"
   K8S_VERSION: "v1.30.2"
-  REGISTRY: "ghcr.io/cloudnative-pg/postgresql-trunk"
+  REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
   POSTGRES_VERSION: "17-devel"
 
 defaults:

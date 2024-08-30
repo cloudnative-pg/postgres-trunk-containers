@@ -18,7 +18,7 @@ on:
 
 # set up environment variables to be used across all the jobs
 env:
-  REGISTRY: "ghcr.io/cloudnative-pg/postgresql-trunk"
+  REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
   TAG: "dev-${{ github.run_number }}"
 
 defaults:
