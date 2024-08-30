@@ -64,23 +64,22 @@ jobs:
           PG_BRANCH=${{ env.BRANCH }}
 
   generate-summary:
-    name: Commit Fest image build
+    name: Commitfest Image Build summary
     runs-on: ubuntu-22.04
     needs:
       - build-pg
     steps:
-      - name: Markdown
+      - name: Output summary
         run: |
           commitFestID=${{ github.event.inputs.commitfest_id }}
           commitFestPatchID=${{ github.event.inputs.patch_id }}
           commitFestURL="https://commitfest.postgresql.org/${commitFestID}/${commitFestPatchID}"
           image="${{ env.REGISTRY }}:${{ needs.build-pg.outputs.tag }}"
           imageURL="https://${image}"
-          echo "# Commit Fest Patch" >> $GITHUB_STEP_SUMMARY
-          echo "[$commitFestID / $commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
-          echo "# Container Image" >> $GITHUB_STEP_SUMMARY
-          echo "[$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
-          echo "# CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
+          echo "# Commitfest Image Build summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Commitfest Patch URL**: [$commitFestID / $commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
+          echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
+          echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
           echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`sh" >> $GITHUB_STEP_SUMMARY
           echo "(cat <<EOF" >> $GITHUB_STEP_SUMMARY
