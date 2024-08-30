@@ -15,7 +15,7 @@ env:
   KIND_VERSION: "v0.23.0"
   K8S_VERSION: "v1.30.2"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  POSTGRES_VERSION: "17-devel"
+  TAG: "${{ vars.PG_MAJOR }}-devel"
 
 defaults:
   run:
@@ -36,7 +36,7 @@ jobs:
     - name: Set Global Env Vars
       id: set-env
       run: |
-        postgres_img="${{ env.REGISTRY }}:${{ env.POSTGRES_VERSION }}"
+        postgres_img="${{ env.REGISTRY }}:${{ env.TAG }}"
         # The version of operator to upgrade FROM, in the rolling upgrade E2E test
         e2e_pre_rolling_update_image="${postgres_img}-1"
 
@@ -158,18 +158,25 @@ jobs:
         # generate E2E test summary in the follow-up job 'summarize-e2e-tests'
       - name: Create individual artifact for each E2E test
         if: (always() && !cancelled())
+        env:
+          RUNNER: "local"
+          POSTGRES_VERSION: "${{ vars.PG_MAJOR }}"
+          RUN_ID: "${{ github.run_id }}"
+          MATRIX: "${{ env.ID }}-${{ env.POSTGRES_KIND }}-${{ vars.PG_MAJOR }}"
+          REPOSITORY: "${{ github.repository }}"
+          BRANCH_NAME: "${GITHUB_REF#refs/heads/}"
+          GIT_REF: "${{ github.ref_name }}"
         run: |
           set +x
-          echo '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "local-PostgreSQL"-${{ env.POSTGRES_VERSION }}", "repo": "${{github.repository}}", "branch": "${GITHUB_REF#refs/heads/}", "refname": "${{github.ref_name}}" }'
           python .github/generate-test-artifacts.py \
             -o testartifacts-${{ env.ID }} \
             -f tests/e2e/out/report.json \
-            -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${GITHUB_REF#refs/heads/}", "refname": "${{github.ref_name}}" }'
+            --environment=true
           if [ -f tests/e2e/out/upgrade_report.json ]; then
             python .github/generate-test-artifacts.py \
               -o testartifacts-${{ env.ID }} \
               -f tests/e2e/out/upgrade_report.json \
-              -m '{"runner": "local", "postgres": "${{env.POSTGRES_VERSION}}", "postgres_kind": "${{env.POSTGRES_KIND}}", "kubernetes": "${{env.K8S_VERSION}}", "runid": ${{ github.run_id }}, "id": "${{ env.ID }}", "repo": "${{github.repository}}", "branch": "${GITHUB_REF#refs/heads/}", "refname": "${{github.ref_name}}" }'
+              --environment=true
           fi
 
       - name: Archive test artifacts
