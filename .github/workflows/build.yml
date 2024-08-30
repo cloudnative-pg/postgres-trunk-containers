@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       extra_tag:
-        description: "Image will be tagged as `dev-<gh_run_id>` (e.g dev-1234). With this field you can set an extra tag"
+        description: "Use this field to set an extra tag (make sure it starts with the PG major)"
         required: false
         default: ""
       pg_repo:
@@ -19,7 +19,7 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  TAG: "dev-${{ github.run_number }}"
+  TAG: "${{ vars.PG_MAJOR }}-${{ github.run_number }}"
 
 defaults:
   run:

@@ -15,7 +15,7 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  TAG: "commitfest-master"
+  TAG: "${{ vars.PG_MAJOR }}-commitfest-master"
   BRANCH: "master"
 
 defaults:
@@ -38,7 +38,7 @@ jobs:
       if: github.event.inputs.commitfest_id != '' && github.event.inputs.patch_id != ''
       run: |
         BRANCH="commitfest/${{ github.event.inputs.commitfest_id }}/${{ github.event.inputs.patch_id }}"
-        TAG=${BRANCH////-}
+        TAG="${{ vars.PG_MAJOR }}-${BRANCH////-}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
