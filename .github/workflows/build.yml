@@ -1,4 +1,4 @@
-name: Build Postgres Container Images from sources
+name: Container Images from PostgreSQL sources
 
 on:
   workflow_dispatch:
