@@ -23,8 +23,8 @@ development process.
 
 If you are developing a patch for PostgreSQL and want a quick way to test it in
 Kubernetes with CloudNativePG, you can fork this project on GitHub. From there,
-navigate to the "Actions" menu and run the relevant workflow, specifying your
-Git repository and branch.
+navigate to the "Actions" menu and run the relevant workflow called "Container
+Images from PostgreSQL sources", specifying your Git repository and branch.
 
 The action summary provides all the details you need to effectively use the
 image.
@@ -33,8 +33,8 @@ image.
 
 If you're interested in testing a PostgreSQL patch from a Commitfest in
 Kubernetes with CloudNativePG, you can fork this project on GitHub. Then, run
-the designated workflow from the "Actions" menu, entering the Commitfest ID and
-patch ID.
+the designated workflow called "Container Images from Commitfest patch" from the
+"Actions" menu, entering the Commitfest ID and patch ID.
 
 The action summary provides all the details you need to effectively use the
 image.
@@ -47,6 +47,6 @@ Copyright © The CloudNativePG Contributors.
 
 ## Trademarks
 
-*[Postgres, PostgreSQL, and the Slonik Logo](https://www.postgresql.org/about/policies/trademarks/)*
+*[Postgres, PostgreSQL, and the Slonik Logo](https://www.postgresql.org/about/policies/trademarks/)
 are trademarks or registered trademarks of the PostgreSQL Community Association
-of Canada and are used with their permission.
+of Canada and are used with their permission.*
