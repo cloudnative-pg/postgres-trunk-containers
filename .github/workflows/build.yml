@@ -3,6 +3,10 @@ name: Build Container Images
 on:
   workflow_dispatch:
     inputs:
+      major_version:
+        description: "PostgreSQL major version tag (leave empty for default)"
+        required: false
+        default: ""
       extra_tag:
         description: "Use this field to set an extra tag (make sure it starts with the PG major)"
         required: false
@@ -19,7 +23,6 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  TAG: "${{ vars.PG_MAJOR }}-${{ github.run_number }}"
 
 defaults:
   run:
@@ -37,12 +40,22 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set optional extra tag
+    - name: Set PostgreSQL Major version
       run: |
+        majorVersion="${{ github.event.inputs.major_version }}"
+        if [[ -z "${majorVersion}" ]]; then
+          majorVersion=`cat pg_major.json | jq  -r '.pg_major'`
+        fi
+        echo "PG_MAJOR=${majorVersion}" >> $GITHUB_ENV
+
+    - name: Set tag and optional extra tag
+      run: |
+        TAG="${{ env.PG_MAJOR }}-build-${{ github.run_number }}"
         EXTRA_TAG=""
         if [[ "${{ github.event.inputs.extra_tag }}" != "" ]]; then
           EXTRA_TAG="${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}"
         fi
+        echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "EXTRA_TAG=${EXTRA_TAG}" >> $GITHUB_ENV
 
     - name: Log in to the GitHub Container registry
