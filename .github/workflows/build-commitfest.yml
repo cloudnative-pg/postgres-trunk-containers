@@ -1,4 +1,4 @@
-name: Build Commitfest Container Images
+name: Container Images from Commitest patch
 
 on:
   workflow_dispatch:
