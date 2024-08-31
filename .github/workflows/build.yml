@@ -1,4 +1,4 @@
-name: Build Container Images
+name: Build Postgres Container Images from sources
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ defaults:
 
 jobs:
   build-pg:
-    name: Build the Trunk of PostgreSQL
+    name: Build generic PostgreSQL image from sources
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -77,3 +77,33 @@ jobs:
         build-args: |
           PG_REPO=${{ github.event.inputs.pg_repo }}
           PG_BRANCH=${{ github.event.inputs.pg_branch }}
+
+  generate-summary:
+    name: PostgreSQL Image Build summary
+    runs-on: ubuntu-22.04
+    needs:
+      - build-pg
+    steps:
+      - name: Output summary
+        run: |
+          pg_major="${{ env.PG_MAJOR }}"
+          image="${{ env.REGISTRY }}:${{ needs.build-pg.outputs.tag }}"
+          imageURL="https://${image}"
+          echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
+          echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
+          echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`sh" >> $GITHUB_STEP_SUMMARY
+          echo "(cat <<EOF" >> $GITHUB_STEP_SUMMARY
+          echo "apiVersion: postgresql.cnpg.io/v1" >> $GITHUB_STEP_SUMMARY
+          echo "kind: Cluster" >> $GITHUB_STEP_SUMMARY
+          echo "metadata:" >> $GITHUB_STEP_SUMMARY
+          echo "  name: pg-$pg_major-build" >> $GITHUB_STEP_SUMMARY
+          echo "spec:" >> $GITHUB_STEP_SUMMARY
+          echo "  imageName: $image" >> $GITHUB_STEP_SUMMARY
+          echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
+          echo "  storage:" >> $GITHUB_STEP_SUMMARY
+          echo "    size: 1Gi" >> $GITHUB_STEP_SUMMARY
+          echo "EOF" >> $GITHUB_STEP_SUMMARY
+          echo ") | kubectl apply -f -" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
