@@ -38,6 +38,7 @@ jobs:
       packages: write
     outputs:
       tag: ${{ env.TAG }}
+      pg_major: ${{ env.PG_MAJOR }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -88,7 +89,7 @@ jobs:
     steps:
       - name: Output summary
         run: |
-          pg_major="${{ env.PG_MAJOR }}"
+          pg_major="${{ needs.build-pg.outputs.pg_major }}"
           image="${{ env.REGISTRY }}:${{ needs.build-pg.outputs.tag }}"
           imageURL="https://${image}"
           echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
