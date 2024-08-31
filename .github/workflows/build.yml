@@ -1,8 +1,12 @@
-name: Build Container Images
+name: Build Postgres Container Images from sources
 
 on:
   workflow_dispatch:
     inputs:
+      major_version:
+        description: "PostgreSQL major version tag (leave empty for default)"
+        required: false
+        default: ""
       extra_tag:
         description: "Use this field to set an extra tag (make sure it starts with the PG major)"
         required: false
@@ -19,7 +23,6 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  TAG: "${{ vars.PG_MAJOR }}-${{ github.run_number }}"
 
 defaults:
   run:
@@ -28,21 +31,34 @@ defaults:
 
 jobs:
   build-pg:
-    name: Build the Trunk of PostgreSQL
+    name: Build generic PostgreSQL image from sources
     runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: write
+    outputs:
+      tag: ${{ env.TAG }}
+      pg_major: ${{ env.PG_MAJOR }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set optional extra tag
+    - name: Set PostgreSQL Major version
       run: |
+        majorVersion="${{ github.event.inputs.major_version }}"
+        if [[ -z "${majorVersion}" ]]; then
+          majorVersion=`cat pg_major.json | jq  -r '.pg_major'`
+        fi
+        echo "PG_MAJOR=${majorVersion}" >> $GITHUB_ENV
+
+    - name: Set tag and optional extra tag
+      run: |
+        TAG="${{ env.PG_MAJOR }}-build-${{ github.run_number }}"
         EXTRA_TAG=""
         if [[ "${{ github.event.inputs.extra_tag }}" != "" ]]; then
           EXTRA_TAG="${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}"
         fi
+        echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "EXTRA_TAG=${EXTRA_TAG}" >> $GITHUB_ENV
 
     - name: Log in to the GitHub Container registry
@@ -64,3 +80,33 @@ jobs:
         build-args: |
           PG_REPO=${{ github.event.inputs.pg_repo }}
           PG_BRANCH=${{ github.event.inputs.pg_branch }}
+
+  generate-summary:
+    name: PostgreSQL Image Build summary
+    runs-on: ubuntu-22.04
+    needs:
+      - build-pg
+    steps:
+      - name: Output summary
+        run: |
+          pg_major="${{ needs.build-pg.outputs.pg_major }}"
+          image="${{ env.REGISTRY }}:${{ needs.build-pg.outputs.tag }}"
+          imageURL="https://${image}"
+          echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
+          echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
+          echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`sh" >> $GITHUB_STEP_SUMMARY
+          echo "(cat <<EOF" >> $GITHUB_STEP_SUMMARY
+          echo "apiVersion: postgresql.cnpg.io/v1" >> $GITHUB_STEP_SUMMARY
+          echo "kind: Cluster" >> $GITHUB_STEP_SUMMARY
+          echo "metadata:" >> $GITHUB_STEP_SUMMARY
+          echo "  name: pg-$pg_major-build" >> $GITHUB_STEP_SUMMARY
+          echo "spec:" >> $GITHUB_STEP_SUMMARY
+          echo "  imageName: $image" >> $GITHUB_STEP_SUMMARY
+          echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
+          echo "  storage:" >> $GITHUB_STEP_SUMMARY
+          echo "    size: 1Gi" >> $GITHUB_STEP_SUMMARY
+          echo "EOF" >> $GITHUB_STEP_SUMMARY
+          echo ") | kubectl apply -f -" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

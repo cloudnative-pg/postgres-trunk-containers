@@ -15,7 +15,6 @@ env:
   KIND_VERSION: "v0.23.0"
   K8S_VERSION: "v1.30.2"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  TAG: "${{ vars.PG_MAJOR }}-devel"
 
 defaults:
   run:
@@ -33,6 +32,18 @@ jobs:
       POSTGRES_IMG: ${{ steps.set-env.outputs.POSTGRES_IMG }}
       E2E_PRE_ROLLING_UPDATE_IMG: ${{ steps.set-env.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
     steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set PostgreSQL Major version
+      run: |
+        majorVersion="${{ github.event.inputs.major_version }}"
+        if [[ -z "${majorVersion}" ]]; then
+          majorVersion=`cat pg_major.json | jq  -r '.pg_major'`
+        fi
+        echo "PG_MAJOR=${majorVersion}" >> $GITHUB_ENV
+        echo "TAG=${majorVersion}-devel" >> $GITHUB_ENV
+
     - name: Set Global Env Vars
       id: set-env
       run: |
@@ -42,9 +53,6 @@ jobs:
 
         echo "POSTGRES_IMG=${postgres_img}" >> $GITHUB_OUTPUT
         echo "E2E_PRE_ROLLING_UPDATE_IMG=${e2e_pre_rolling_update_image}" >> $GITHUB_OUTPUT
-
-    - name: Checkout Code
-      uses: actions/checkout@v4
 
     - name: Log in to the GitHub Container registry
       uses: docker/login-action@v3
@@ -160,9 +168,9 @@ jobs:
         if: (always() && !cancelled())
         env:
           RUNNER: "local"
-          POSTGRES_VERSION: "${{ vars.PG_MAJOR }}"
+          POSTGRES_VERSION: "${{ env.PG_MAJOR }}"
           RUN_ID: "${{ github.run_id }}"
-          MATRIX: "${{ env.ID }}-${{ env.POSTGRES_KIND }}-${{ vars.PG_MAJOR }}"
+          MATRIX: "${{ env.ID }}-${{ env.POSTGRES_KIND }}-${{ env.PG_MAJOR }}"
           REPOSITORY: "${{ github.repository }}"
           BRANCH_NAME: "${GITHUB_REF#refs/heads/}"
           GIT_REF: "${{ github.ref_name }}"
