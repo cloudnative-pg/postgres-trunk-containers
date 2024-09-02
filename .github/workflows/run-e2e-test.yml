@@ -1,7 +1,14 @@
-name: continuous-delivery
+name: Run E2E tests
+
 on:
   workflow_dispatch:
     inputs:
+      postgres_img:
+        description: "PostgreSQL Image (leave empty for default)"
+        required: false
+      major_version:
+        description: "PostgreSQL major version (leave empty for default)"
+        required: false
       cnpg_branch:
         description: "Name of the branch/tag used to build & load the operator (leave empty for default)"
         required: false
@@ -11,27 +18,13 @@ on:
       feature_type:
         description: 'E2E feature type filter. See https://github.com/cloudnative-pg/cloudnative-pg/blob/main/contribute/e2e_testing_environment/README.md#using-feature-type-test-selectionfilter'
         required: false
-  schedule:
-  - cron:  '0 1 * * *'
-
-# set up environment variables to be used across all the jobs
-env:
-  REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-
-defaults:
-  run:
-    # default failure handling for shell scripts in 'run' steps
-    shell: 'bash -Eeuo pipefail -x {0}'
 
 jobs:
-  build-pg:
-    name: Build the Trunk of PostgreSQL
+  evaluate-env:
+    name: Evaluate input env variables
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
     outputs:
-      pg_image: ${{ env.TAG }}
+      pg_image: "${{ env.PG_IMAGE }}"
       pg_major: ${{ env.PG_MAJOR }}
       cnpg_branch: ${{ env.CNPG_BRANCH }}
       test_depth: ${{ env.TEST_DEPTH }}
@@ -49,6 +42,12 @@ jobs:
     # Inputs have priority over defaults.json.
     - name: Evaluate E2E workflow inputs
       run: |
+        if [[ -n "${{ github.event.inputs.postgres_img }}" ]]; then
+          echo "PG_IMAGE=${{ github.event.inputs.postgres_img }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ github.event.inputs.major_version }}" ]]; then
+          echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
+        fi
         if [[ -n "${{ github.event.inputs.cnpg_branch }}" ]]; then
           echo "CNPG_BRANCH=${{ github.event.inputs.cnpg_branch }}" >> $GITHUB_ENV
         fi
@@ -59,35 +58,13 @@ jobs:
           echo "FEATURE_TYPE=${{ github.event.inputs.feature_type }}" >> $GITHUB_ENV
         fi
 
-    - name: Set tag
-      run: |
-        postgres_img="${{ env.REGISTRY }}:${{ env.PG_MAJOR }}-devel"
-        echo "TAG=${postgres_img}" >> $GITHUB_ENV
-
-    - name: Log in to the GitHub Container registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Build and load
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        push: true
-        load: false
-        tags: |
-          ${{ env.TAG }}
-
   call-reusable-e2e:
-    if: github.event_name == 'schedule'
     needs:
-      - build-pg
+      - evaluate-env
     uses: ./.github/workflows/reusable-e2e.yml
     with:
-      postgres_img: ${{ needs.build-pg.outputs.pg_image }}
-      major_version: ${{ needs.build-pg.outputs.pg_major }}
-      cnpg_branch: ${{ needs.build-pg.outputs.cnpg_branch }}
-      test_depth: ${{ needs.build-pg.outputs.test_depth }}
-      feature_type: ${{ needs.build-pg.outputs.feature_type }}
+      postgres_img: ${{ needs.evaluate-env.outputs.pg_image }}
+      major_version: ${{ needs.evaluate-env.outputs.pg_major }}
+      cnpg_branch: ${{ needs.evaluate-env.outputs.cnpg_branch }}
+      test_depth: ${{ needs.evaluate-env.outputs.test_depth }}
+      feature_type: ${{ needs.evaluate-env.outputs.feature_type }}
