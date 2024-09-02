@@ -1,0 +1,45 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:base"
+    ],
+    "prConcurrentLimit": 5,
+    "semanticCommits": "enabled",
+    "regexManagers": [
+        {
+            // We want a PR to bump kind version
+            "fileMatch": [
+                "^.github/workflows/run-e2e.yml"
+            ],
+            "matchStrings": [
+                "KIND_VERSION: \"(?<currentValue>.*?)\""
+            ],
+            "datasourceTemplate": "github-tags",
+            "depNameTemplate": "kubernetes-sigs/kind"
+        }, {
+            // We want a PR to bump kind node version
+            "fileMatch": [
+                "^.github/workflows/run-e2e.yml"
+            ],
+            "matchStrings": [
+                "K8S_VERSION: \"(?<currentValue>.*?)\""
+            ],
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "loose",
+            "depNameTemplate": "kindest/node"
+        }, {
+            // We want a PR to bump Go versions used through env variables in any GitHub
+            // Actions, taking it from the official GitHub repository.
+            "fileMatch": [
+                "^\\.github\\/workflows\\/[^/]+\\.ya?ml$"
+            ],
+            "matchStrings": [
+                "GOLANG_VERSION: \"(?<currentValue>.*?)\\.x\"",
+            ],
+            "datasourceTemplate": "golang-version",
+            "depNameTemplate": "golang",
+            "versioningTemplate": "loose",
+            "extractVersionTemplate": "^(?<version>\\d+\\.\\d+)"
+        }
+    ]
+}
