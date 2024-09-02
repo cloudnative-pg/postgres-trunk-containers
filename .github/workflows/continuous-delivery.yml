@@ -2,18 +2,23 @@ name: continuous-delivery
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: "branch name used to pull the operator (default: main)"
-        required: true
-        default: "main"
+      major_version:
+        description: "PostgreSQL major version (leave empty for default)"
+        required: false
+      cnpg_branch:
+        description: "Name of the branch/tag used to build & load the operator (leave empty for default)"
+        required: false
+      test_depth:
+        description: 'E2E test level: 0(highest) to 4(lowest) (leave empty for default)'
+        required: false
+      feature_type:
+        description: 'E2E feature type filter. See https://github.com/cloudnative-pg/cloudnative-pg/blob/main/contribute/e2e_testing_environment/README.md#using-feature-type-test-selectionfilter'
+        required: false
   schedule:
   - cron:  '0 1 * * *'
 
 # set up environment variables to be used across all the jobs
 env:
-  GOLANG_VERSION: "1.22.x"
-  KIND_VERSION: "v0.23.0"
-  K8S_VERSION: "v1.30.2"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
 defaults:
@@ -29,30 +34,41 @@ jobs:
       contents: read
       packages: write
     outputs:
-      POSTGRES_IMG: ${{ steps.set-env.outputs.POSTGRES_IMG }}
-      E2E_PRE_ROLLING_UPDATE_IMG: ${{ steps.set-env.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
+      pg_image: ${{ env.TAG }}
+      pg_major: ${{ env.PG_MAJOR }}
+      cnpg_branch: ${{ env.CNPG_BRANCH }}
+      test_depth: ${{ env.TEST_DEPTH }}
+      feature_type: ${{ env.FEATURE_TYPE }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set PostgreSQL Major version
+    - name: Set env variables from defaults.json
       run: |
-        majorVersion="${{ github.event.inputs.major_version }}"
-        if [[ -z "${majorVersion}" ]]; then
-          majorVersion=`cat pg_major.json | jq  -r '.pg_major'`
+        for key in $(jq -r 'keys[]' defaults.json); do
+          echo "$key=$(cat defaults.json | jq -r --arg key "$key" '.[$key]')" >> $GITHUB_ENV
+        done
+
+    # Inputs have priority over defaults.json.
+    - name: Evaluate E2E workflow inputs
+      run: |
+        if [[ -n "${{ github.event.inputs.major_version }}" ]]; then
+          echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
         fi
-        echo "PG_MAJOR=${majorVersion}" >> $GITHUB_ENV
-        echo "TAG=${majorVersion}-devel" >> $GITHUB_ENV
+        if [[ -n "${{ github.event.inputs.cnpg_branch }}" ]]; then
+          echo "CNPG_BRANCH=${{ github.event.inputs.cnpg_branch }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ github.event.inputs.test_depth }}" ]]; then
+          echo "TEST_DEPTH=${{ github.event.inputs.test_depth }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ github.event.inputs.feature_type }}" ]]; then
+          echo "FEATURE_TYPE=${{ github.event.inputs.feature_type }}" >> $GITHUB_ENV
+        fi
 
-    - name: Set Global Env Vars
-      id: set-env
+    - name: Set tag
       run: |
-        postgres_img="${{ env.REGISTRY }}:${{ env.TAG }}"
-        # The version of operator to upgrade FROM, in the rolling upgrade E2E test
-        e2e_pre_rolling_update_image="${postgres_img}-1"
-
-        echo "POSTGRES_IMG=${postgres_img}" >> $GITHUB_OUTPUT
-        echo "E2E_PRE_ROLLING_UPDATE_IMG=${e2e_pre_rolling_update_image}" >> $GITHUB_OUTPUT
+        postgres_img="${{ env.REGISTRY }}:${{ env.PG_MAJOR }}-devel"
+        echo "TAG=${postgres_img}" >> $GITHUB_ENV
 
     - name: Log in to the GitHub Container registry
       uses: docker/login-action@v3
@@ -68,204 +84,16 @@ jobs:
         push: true
         load: false
         tags: |
-          ${{ steps.set-env.outputs.POSTGRES_IMG }}
-          ${{ steps.set-env.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
+          ${{ env.TAG }}
 
-  e2e-local:
-    name: Run E2E on local executors
+  call-run-e2e:
+    if: github.event_name == 'schedule'
     needs:
       - build-pg
-    runs-on: ubuntu-24.04
-    env:
-      TEST_DEPTH: 4
-      ID: "local"
-      POSTGRES_KIND: "PostgreSQL"
-
-      DOCKER_SERVER: ghcr.io
-      DOCKER_USERNAME: ${{ github.actor }}
-      DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      TEST_UPGRADE_TO_V1: false
-      BRANCH_NAME: main
-      POSTGRES_IMG: ${{ needs.build-pg.outputs.POSTGRES_IMG }}
-      E2E_PRE_ROLLING_UPDATE_IMG: ${{ needs.build-pg.outputs.E2E_PRE_ROLLING_UPDATE_IMG }}
-      DEBUG: "true"
-      BUILD_IMAGE: "true"
-      E2E_DEFAULT_STORAGE_CLASS: standard
-      E2E_CSI_STORAGE_CLASS: csi-hostpath-sc
-      E2E_DEFAULT_VOLUMESNAPSHOT_CLASS: csi-hostpath-snapclass
-      LOG_DIR: ${{ github.workspace }}/kind-logs/
-      DOCKER_REGISTRY_MIRROR: https://mirror.gcr.io
-      TEST_CLOUD_VENDOR: "local"
-    steps:
-      - name: Cleanup Disk
-        uses: jlumbroso/free-disk-space@main
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          tool-cache: true
-          large-packages: false
-          swap-storage: false
-
-      - name: Cleanup docker cache
-        run: |
-          echo "-------------Disk info before cleanup----------------"
-          df -h
-          echo "-----------------------------------------------------"
-          docker system prune -a -f
-          echo "-------------Disk info after cleanup----------------"
-          df -h
-          echo "-----------------------------------------------------"
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          repository: cloudnative-pg/cloudnative-pg
-          ref: ${{ github.event.inputs.branch || 'main' }}
-          fetch-depth: 0
-
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GOLANG_VERSION }}
-
-      - name: Set GoReleaser environment
-        run: |
-          echo GOPATH=$(go env GOPATH) >> $GITHUB_ENV
-          echo PWD=$(pwd) >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Prepare the environment
-        uses: nick-fields/retry@v3
-        with:
-          timeout_seconds: 120
-          max_attempts: 3
-          on_retry_command: |
-            # Clear-ups before retries
-            rm -rf /usr/local/bin/kind /usr/local/bin/kubectl
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y gettext-base
-            sudo hack/setup-cluster.sh prepare /usr/local/bin
-
-      - name: Run Kind End-to-End tests
-        run: make e2e-test-kind
-
-        # Summarize the failed E2E test cases if there are any
-      - name: Report failed E2E tests
-        if: failure()
-        run: |
-          set +x
-          chmod +x .github/report-failed-test.sh
-          ./.github/report-failed-test.sh
-
-        # Create an individual artifact for each E2E test, which will be used to
-        # generate E2E test summary in the follow-up job 'summarize-e2e-tests'
-      - name: Create individual artifact for each E2E test
-        if: (always() && !cancelled())
-        env:
-          RUNNER: "local"
-          POSTGRES_VERSION: "${{ env.PG_MAJOR }}"
-          RUN_ID: "${{ github.run_id }}"
-          MATRIX: "${{ env.ID }}-${{ env.POSTGRES_KIND }}-${{ env.PG_MAJOR }}"
-          REPOSITORY: "${{ github.repository }}"
-          BRANCH_NAME: "${GITHUB_REF#refs/heads/}"
-          GIT_REF: "${{ github.ref_name }}"
-        run: |
-          set +x
-          python .github/generate-test-artifacts.py \
-            -o testartifacts-${{ env.ID }} \
-            -f tests/e2e/out/report.json \
-            --environment=true
-          if [ -f tests/e2e/out/upgrade_report.json ]; then
-            python .github/generate-test-artifacts.py \
-              -o testartifacts-${{ env.ID }} \
-              -f tests/e2e/out/upgrade_report.json \
-              --environment=true
-          fi
-
-      - name: Archive test artifacts
-        if: (always() && !cancelled())
-        uses: actions/upload-artifact@v4
-        with:
-          name: testartifacts-local
-          path: testartifacts-${{ env.ID }}/
-          retention-days: 7
-
-      - name: Cleanup test artifacts
-        if: always()
-        run:
-          rm -rf testartifacts-${{ env.ID }}/
-
-      # Delete report.json after the analysis. File should always exist.
-      # Delete upgrade_report.json. It may not exist depending on test level.
-      - name: Cleanup ginkgo JSON report
-        if: always()
-        run: |
-          if [ -f tests/e2e/out/upgrade_report.json ]; then
-            rm tests/e2e/out/upgrade_report.json
-          fi
-          rm tests/e2e/out/report.json
-
-      # Archive logs for failed test cases if there are any
-      - name: Archive Kind logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kind-logs-${{ env.ID }}
-          path: kind-logs/
-          retention-days: 7
-
-      - name: Archive e2e failure contexts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-failure-contexts-${{ env.ID }}
-          path: |
-            tests/*/out/
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # Summarize E2E test results, display in the GitHub 'summary' view
-  summarize-e2e-tests:
-    name: E2E test suite
-    needs:
-      - e2e-local
-    if: |
-      always() && !cancelled() &&
-      (
-        needs.e2e-local.result == 'success' ||
-        needs.e2e-local.result == 'failure'
-      )
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Create a directory for the artifacts
-        run: mkdir test-artifacts
-
-      - name: Download all artifacts to the directory
-        uses: actions/download-artifact@v4
-        with:
-          path: test-artifacts
-          pattern: testartifacts-*
-
-      - name: Flatten all artifacts onto directory
-        # The download-artifact action, since we did not give it a name,
-        # downloads all artifacts and creates a new folder for each.
-        # In this step we bring all the JSONs to a single folder
-        run: |
-          mkdir test-artifacts/data
-          mv test-artifacts/*/*.json test-artifacts/data
-
-      - name: Display the structure of the artifact folder
-        run: ls -R test-artifacts/data
-
-      - name: Compute the E2E test summary
-        uses: cloudnative-pg/ciclops@v1.3.0
-        with:
-          artifact_directory: test-artifacts/data
-
-      - name: Delete the downloaded files
-        run: rm -rf test-artifacts
+    uses: ./.github/workflows/run-e2e.yml
+    with:
+      postgres_img: ${{ needs.build-pg.outputs.pg_image }}
+      major_version: ${{ needs.build-pg.outputs.pg_major }}
+      cnpg_branch: ${{ needs.build-pg.outputs.cnpg_branch }}
+      test_depth: ${{ needs.build-pg.outputs.test_depth }}
+      feature_type: ${{ needs.build-pg.outputs.feature_type }}

@@ -3,14 +3,6 @@ name: Container Images from PostgreSQL sources
 on:
   workflow_dispatch:
     inputs:
-      major_version:
-        description: "PostgreSQL major version tag (leave empty for default)"
-        required: false
-        default: ""
-      extra_tag:
-        description: "Use this field to set an extra tag (make sure it starts with the PG major)"
-        required: false
-        default: ""
       pg_repo:
         description: "Name of the target PG repository"
         required: true
@@ -19,6 +11,26 @@ on:
         description: "Name of the branch in the target PG repository"
         required: true
         default: "master"
+      major_version:
+        description: "PostgreSQL major version (leave empty for default)"
+        required: false
+      extra_tag:
+        description: "Optional extra tag (make sure it starts with the PG major)"
+        required: false
+      run_e2e:
+        description: "Run E2Es on the built image"
+        required: false
+        type: boolean
+        default: "false"
+      cnpg_branch:
+        description: "Name of the branch/tag used to build & load the operator (leave empty for default)"
+        required: false
+      test_depth:
+        description: 'E2E test level: 0(highest) to 4(lowest) (leave empty for default)'
+        required: false
+      feature_type:
+        description: 'E2E feature type filter. See https://github.com/cloudnative-pg/cloudnative-pg/blob/main/contribute/e2e_testing_environment/README.md#using-feature-type-test-selectionfilter'
+        required: false
 
 # set up environment variables to be used across all the jobs
 env:
@@ -37,23 +49,40 @@ jobs:
       contents: read
       packages: write
     outputs:
-      tag: ${{ env.TAG }}
+      pg_image: ${{ env.TAG }}
       pg_major: ${{ env.PG_MAJOR }}
+      cnpg_branch: ${{ env.CNPG_BRANCH }}
+      test_depth: ${{ env.TEST_DEPTH }}
+      feature_type: ${{ env.FEATURE_TYPE }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set PostgreSQL Major version
+    - name: Set env variables from defaults.json
       run: |
-        majorVersion="${{ github.event.inputs.major_version }}"
-        if [[ -z "${majorVersion}" ]]; then
-          majorVersion=`cat pg_major.json | jq  -r '.pg_major'`
+        for key in $(jq -r 'keys[]' defaults.json); do
+          echo "$key=$(cat defaults.json | jq -r --arg key "$key" '.[$key]')" >> $GITHUB_ENV
+        done
+
+    # Inputs have priority over defaults.json.
+    - name: Evaluate E2E workflow inputs
+      run: |
+        if [[ -n "${{ github.event.inputs.major_version }}" ]]; then
+          echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
         fi
-        echo "PG_MAJOR=${majorVersion}" >> $GITHUB_ENV
+        if [[ -n "${{ github.event.inputs.cnpg_branch }}" ]]; then
+          echo "CNPG_BRANCH=${{ github.event.inputs.cnpg_branch }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ github.event.inputs.test_depth }}" ]]; then
+          echo "TEST_DEPTH=${{ github.event.inputs.test_depth }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ github.event.inputs.feature_type }}" ]]; then
+          echo "FEATURE_TYPE=${{ github.event.inputs.feature_type }}" >> $GITHUB_ENV
+        fi
 
     - name: Set tag and optional extra tag
       run: |
-        TAG="${{ env.PG_MAJOR }}-build-${{ github.run_number }}"
+        TAG="${{ env.REGISTRY }}:${{ env.PG_MAJOR }}-build-${{ github.run_number }}"
         EXTRA_TAG=""
         if [[ "${{ github.event.inputs.extra_tag }}" != "" ]]; then
           EXTRA_TAG="${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}"
@@ -75,7 +104,7 @@ jobs:
         push: true
         load: false
         tags: |
-          ${{ env.REGISTRY }}:${{ env.TAG }}
+          ${{ env.TAG }}
           ${{ env.EXTRA_TAG }}
         build-args: |
           PG_REPO=${{ github.event.inputs.pg_repo }}
@@ -90,7 +119,7 @@ jobs:
       - name: Output summary
         run: |
           pg_major="${{ needs.build-pg.outputs.pg_major }}"
-          image="${{ env.REGISTRY }}:${{ needs.build-pg.outputs.tag }}"
+          image="${{ needs.build-pg.outputs.pg_image }}"
           imageURL="https://${image}"
           echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
           echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
@@ -110,3 +139,15 @@ jobs:
           echo "EOF" >> $GITHUB_STEP_SUMMARY
           echo ") | kubectl apply -f -" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  call-run-e2e:
+    if: github.event.inputs.run_e2e == 'true'
+    needs:
+      - build-pg
+    uses: ./.github/workflows/run-e2e.yml
+    with:
+      postgres_img: ${{ needs.build-pg.outputs.pg_image }}
+      major_version: ${{ needs.build-pg.outputs.pg_major }}
+      cnpg_branch: ${{ needs.build-pg.outputs.cnpg_branch }}
+      test_depth: ${{ needs.build-pg.outputs.test_depth }}
+      feature_type: ${{ needs.build-pg.outputs.feature_type }}
