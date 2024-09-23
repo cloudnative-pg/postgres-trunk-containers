@@ -135,6 +135,7 @@ RUN set -eux ; \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
+		--with-extra-version=-$(git rev-parse --short HEAD) \
 		--datarootdir=/usr/share/ \
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
