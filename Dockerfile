@@ -162,7 +162,7 @@ RUN set -eux ; \
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
 RUN set -eux ; \
 	mkdir -p /usr/src/pgaudit ; \
-	git clone -b master --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
+	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
 	cd /usr/src/pgaudit ; \
 	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
 	cd / ; \
