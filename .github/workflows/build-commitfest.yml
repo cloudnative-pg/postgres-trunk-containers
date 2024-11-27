@@ -3,9 +3,6 @@ name: Container Images from Commitest patch
 on:
   workflow_dispatch:
     inputs:
-      commitfest_id:
-        description: "ID of the Commitfest"
-        required: false
       patch_id:
         description: "ID of the Patch"
         required: false
@@ -50,9 +47,9 @@ jobs:
         fi
 
     - name: Set commitfest branch and tag
-      if: github.event.inputs.commitfest_id != '' && github.event.inputs.patch_id != ''
+      if: github.event.inputs.patch_id != ''
       run: |
-        BRANCH="commitfest/${{ github.event.inputs.commitfest_id }}/${{ github.event.inputs.patch_id }}"
+        BRANCH="cf/${{ github.event.inputs.patch_id }}"
         TAG="${{ env.PG_MAJOR }}-${BRANCH////-}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
@@ -84,13 +81,12 @@ jobs:
     steps:
       - name: Output summary
         run: |
-          commitFestID=${{ github.event.inputs.commitfest_id }}
           commitFestPatchID=${{ github.event.inputs.patch_id }}
-          commitFestURL="https://commitfest.postgresql.org/${commitFestID}/${commitFestPatchID}"
+          commitFestURL="https://commitfest.postgresql.org/patch/${commitFestPatchID}"
           image="${{ needs.build-pg.outputs.pg_image }}"
           imageURL="https://${image}"
           echo "# Commitfest Image Build summary" >> $GITHUB_STEP_SUMMARY
-          echo "**Commitfest Patch URL**: [$commitFestID / $commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commitfest Patch URL**: [$commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
           echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
           echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
           echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
@@ -99,7 +95,7 @@ jobs:
           echo "apiVersion: postgresql.cnpg.io/v1" >> $GITHUB_STEP_SUMMARY
           echo "kind: Cluster" >> $GITHUB_STEP_SUMMARY
           echo "metadata:" >> $GITHUB_STEP_SUMMARY
-          echo "  name: commitfest-$commitFestID-$commitFestPatchID" >> $GITHUB_STEP_SUMMARY
+          echo "  name: commitfest-$commitFestPatchID" >> $GITHUB_STEP_SUMMARY
           echo "spec:" >> $GITHUB_STEP_SUMMARY
           echo "  imageName: $image" >> $GITHUB_STEP_SUMMARY
           echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
