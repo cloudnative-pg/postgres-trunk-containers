@@ -52,7 +52,7 @@ jobs:
     - name: Set commitfest branch and tag
       if: github.event.inputs.commitfest_id != '' && github.event.inputs.patch_id != ''
       run: |
-        BRANCH="commitfest/${{ github.event.inputs.commitfest_id }}/${{ github.event.inputs.patch_id }}"
+        BRANCH="cf/${{ github.event.inputs.patch_id }}"
         TAG="${{ env.PG_MAJOR }}-${BRANCH////-}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
