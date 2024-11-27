@@ -34,7 +34,7 @@ image.
 If you're interested in testing a PostgreSQL patch from a Commitfest in
 Kubernetes with CloudNativePG, you can fork this project on GitHub. Then, run
 the designated workflow called "Container Images from Commitfest patch" from the
-"Actions" menu, entering the Commitfest ID and patch ID.
+"Actions" menu, entering the Commitfest Patch ID.
 
 The action summary provides all the details you need to effectively use the
 image.
