@@ -30,7 +30,7 @@ defaults:
 jobs:
   build-pg:
     name: Build generic PostgreSQL image from sources
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
@@ -85,7 +85,7 @@ jobs:
 
   generate-summary:
     name: PostgreSQL Image Build summary
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - build-pg
     steps:
