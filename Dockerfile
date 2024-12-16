@@ -199,7 +199,7 @@ RUN set -xe; \
 		python3-setuptools \
 	; \
 	pip3 install --break-system-packages --upgrade pip; \
-	pip3 install --break-system-packages barman[cloud,azure,snappy,google]==3.11.1; \
+	pip3 install --break-system-packages barman[cloud,azure,snappy,google]; \
 	# TODO: Remove build deps once barman unpins the snappy version or
 	# https://github.com/EnterpriseDB/barman/issues/905 is completed
 	apt-get remove -y --purge --autoremove \
