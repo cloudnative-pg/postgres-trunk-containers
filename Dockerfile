@@ -158,15 +158,16 @@ RUN set -eux ; \
 	rm -rf /usr/src/postgresql ; \
 	postgres --version
 
+# TODO: re-enable once https://github.com/pgaudit/pgaudit/issues/257 is fixed
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-RUN set -eux ; \
-	mkdir -p /usr/src/pgaudit ; \
-	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
-	cd /usr/src/pgaudit ; \
-	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
-	cd / ; \
-	rm -rf /usr/src/pgaudit
+# RUN set -eux ; \
+#	mkdir -p /usr/src/pgaudit ; \
+#	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit ; \
+#	cd /usr/src/pgaudit ; \
+#	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config ; \
+#	cd / ; \
+#	rm -rf /usr/src/pgaudit
 
 # Purge build dependencies
 RUN set -xe ; \
