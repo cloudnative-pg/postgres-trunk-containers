@@ -192,22 +192,12 @@ RUN set -xe; \
 	echo "deb $aptRepo" > /etc/apt/sources.list.d/pgdg.list; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		# TODO: Remove build deps once barman unpins the snappy version or
-		# https://github.com/EnterpriseDB/barman/issues/905 is completed
-		build-essential python3-dev libsnappy-dev \
 		python3-pip \
 		python3-psycopg2 \
 		python3-setuptools \
 	; \
 	pip3 install --break-system-packages --upgrade pip; \
 	pip3 install --break-system-packages barman[cloud,azure,snappy,google]; \
-	# TODO: Remove build deps once barman unpins the snappy version or
-	# https://github.com/EnterpriseDB/barman/issues/905 is completed
-	apt-get remove -y --purge --autoremove \
-		build-essential \
-		python3-dev \
-		libsnappy-dev \
-	; \
 	rm -rf /var/lib/apt/lists/*;
 
 # make the sample config easier to munge (and "correct by default")
