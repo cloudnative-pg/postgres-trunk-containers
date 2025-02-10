@@ -197,7 +197,7 @@ RUN set -xe; \
 		python3-setuptools \
 	; \
 	pip3 install --break-system-packages --upgrade pip; \
-	pip3 install --break-system-packages barman[cloud,azure,snappy,google]; \
+	pip3 install --break-system-packages barman[cloud,azure,snappy,google] boto3==1.35.99; \
 	rm -rf /var/lib/apt/lists/*;
 
 # make the sample config easier to munge (and "correct by default")
