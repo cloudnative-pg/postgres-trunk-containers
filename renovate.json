@@ -6,14 +6,14 @@
     "customManagers": [
       {
         "customType": "regex",
-        "fileMatch": ["^.github/workflows/run-e2e.yml"],
+        "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
         "matchStrings": ["KIND_VERSION: \"(?<currentValue>.*?)\""],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/kind"
       },
       {
         "customType": "regex",
-        "fileMatch": ["^.github/workflows/run-e2e.yml"],
+        "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
         "matchStrings": ["K8S_VERSION: \"(?<currentValue>.*?)\""],
         "datasourceTemplate": "docker",
         "versioningTemplate": "loose",
