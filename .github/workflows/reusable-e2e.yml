@@ -28,7 +28,7 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   GOLANG_VERSION: "1.23.x"
-  KIND_VERSION: "v0.24.0"
+  KIND_VERSION: "v0.26.0"
   K8S_VERSION: "v1.32.1"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
