@@ -141,7 +141,7 @@ RUN key='B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8' && \
 		python3-setuptools \
 	&& \
 	pip3 install --break-system-packages --upgrade pip && \
-	pip3 install --break-system-packages barman[cloud,azure,snappy,google] boto3==1.35.99 && \
+	pip3 install --break-system-packages barman[cloud,azure,google,snappy,zstandard,lz4]==3.12.1 boto3==1.35.99 && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
 
 # DoD 2.3 - remove setuid/setgid from any binary that not strictly requires it, and before doing that list them on the stdout
