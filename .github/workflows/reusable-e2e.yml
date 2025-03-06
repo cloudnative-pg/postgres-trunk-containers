@@ -104,18 +104,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Prepare the environment
-        uses: nick-fields/retry@v3
+      - name: Install Kind
+        uses: helm/kind-action@v1.12.0
         with:
-          timeout_seconds: 120
-          max_attempts: 3
-          on_retry_command: |
-            # Clear-ups before retries
-            rm -rf /usr/local/bin/kind /usr/local/bin/kubectl
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y gettext-base
-            sudo hack/setup-cluster.sh prepare /usr/local/bin
+          install_only: true
+          version: ${{ env.KIND_VERSION }}
+          kubectl_version: ${{ env.K8S_VERSION }}
 
       - name: Log in to the GitHub Container registry
         uses: docker/login-action@v3
