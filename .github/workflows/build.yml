@@ -78,7 +78,12 @@ jobs:
     - name: Generated images
       id: images
       run: |
-        echo "IMAGES=$(echo '${{ steps.build.outputs.metadata }}' | jq -c '.[]."image.name"')" >> $GITHUB_ENV
+        IMAGES="$(echo '${{ steps.build.outputs.metadata }}' | jq -r '.[]."image.name"')"
+        {
+          echo 'IMAGES<<EOF'
+          echo "${IMAGES}"
+          echo EOF
+        } >> $GITHUB_ENV
 
   generate-summary:
     name: PostgreSQL Image Build summary
@@ -90,8 +95,8 @@ jobs:
         run: |
           pg_major="${{ needs.build-pg.outputs.pg_major }}"
           images="${{ needs.build-pg.outputs.images }}"
-          images_list="$(echo $images | jq -r | tr ' ' '\n' | sed 's/^/https:\/\//')"
-          standardImage="$(echo $images | jq -r | grep standard)"
+          images_list="$(echo $images | tr ' ' '\n' | sed 's/^/https:\/\//')"
+          standardImage="$(echo $images | tr ' ' '\n' | grep standard)"
 
           echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
           echo "Here's the list of Container Images that have been built:" >> $GITHUB_STEP_SUMMARY
