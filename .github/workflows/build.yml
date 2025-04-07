@@ -69,9 +69,9 @@ jobs:
         set: |
           *.args.PG_REPO=${{ github.event.inputs.pg_repo }}
           *.args.PG_BRANCH=${{ github.event.inputs.pg_branch }}
-          minimal.tags=${registry}/postgresql-trunk:18-minimal-${{ github.run_number }}
-          standard.tags=${registry}/postgresql-trunk:18-standard-${{ github.run_number }}
-          postgis.tags=${registry}/postgresql-trunk:18-postgis-${{ github.run_number }}
+          minimal.tags=${{ env.registry }}/postgresql-trunk:18-minimal-${{ github.run_number }}
+          standard.tags=${{ env.registry }}/postgresql-trunk:18-standard-${{ github.run_number }}
+          postgis.tags=${{ env.registry }}/postgresql-trunk:18-postgis-${{ github.run_number }}
         push: true
 
     # Get a list of the images that were built and pushed.
@@ -92,10 +92,9 @@ jobs:
           images="${{ needs.build-pg.outputs.images }}"
           images_list="$(echo $images | jq -r | tr ' ' '\n' | sed 's/^/https:\/\//')"
           standardImage="$(echo $images | jq -r | grep standard)"
-          standardImageURL="https://${standardImage}"
 
           echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
-          echo "Here's the list of images that have been built:" >> $GITHUB_STEP_SUMMARY
+          echo "Here's the list of Container Images that have been built:" >> $GITHUB_STEP_SUMMARY
           echo "$images_list" >> $GITHUB_STEP_SUMMARY
 
           echo "## CloudNativePG Cluster definition (example using the standard image)" >> $GITHUB_STEP_SUMMARY

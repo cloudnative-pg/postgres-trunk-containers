@@ -5,15 +5,10 @@ on:
     inputs:
       patch_id:
         description: "ID of the Patch"
-        required: false
+        required: true
       major_version:
         description: "PostgreSQL major version (leave empty for default)"
         required: false
-
-# set up environment variables to be used across all the jobs
-env:
-  REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-  BRANCH: "master"
 
 defaults:
   run:
@@ -28,7 +23,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      pg_image: "${{ env.REGISTRY }}:${{ env.TAG }}"
+      images: ${{ env.IMAGES }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -47,10 +42,9 @@ jobs:
         fi
 
     - name: Set commitfest branch and tag
-      if: github.event.inputs.patch_id != ''
       run: |
         BRANCH="cf/${{ github.event.inputs.patch_id }}"
-        TAG="${{ env.PG_MAJOR }}-${BRANCH////-}"
+        TAG="${BRANCH////-}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
@@ -61,17 +55,31 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build and push
-      uses: docker/build-push-action@v6
+      uses: docker/bake-action@v6
+      id: build
+      env:
+        environment: production
+        registry: ghcr.io/${{ github.repository_owner }}
+        revision: ${{ github.sha }}
+        pgMajor: ${{ env.PG_MAJOR }}
       with:
-        context: .
+        set: |
+          *.args.PG_REPO=https://github.com/postgresql-cfbot/postgresql.git
+          *.args.PG_BRANCH=${{ env.BRANCH }}
+          minimal.tags=${{ env.registry }}/postgresql-trunk:18-minimal-${{ env.TAG }}
+          standard.tags=${{ env.registry }}/postgresql-trunk:18-standard-${{ env.TAG }}
+          postgis.tags=${{ env.registry }}/postgresql-trunk:18-postgis-${{ env.TAG }}
         push: true
-        load: false
-        tags: |
-          ${{ env.REGISTRY }}:${{ env.TAG }}
-        build-args: |
-          PG_REPO=https://github.com/postgresql-cfbot/postgresql.git
-          PG_BRANCH=${{ env.BRANCH }}
+
+    # Get a list of the images that were built and pushed.
+    - name: Generated images
+      id: images
+      run: |
+        echo "IMAGES=$(echo '${{ steps.build.outputs.metadata }}' | jq -c '.[]."image.name"')" >> $GITHUB_ENV
 
   generate-summary:
     name: Commitfest Image Build summary
@@ -83,11 +91,15 @@ jobs:
         run: |
           commitFestPatchID=${{ github.event.inputs.patch_id }}
           commitFestURL="https://commitfest.postgresql.org/patch/${commitFestPatchID}"
-          image="${{ needs.build-pg.outputs.pg_image }}"
-          imageURL="https://${image}"
+          image="${{ needs.build-pg.outputs.images }}"
+          images_list="$(echo $images | jq -r | tr ' ' '\n' | sed 's/^/https:\/\//')"
+          standardImage="$(echo $images | jq -r | grep standard)"
+
           echo "# Commitfest Image Build summary" >> $GITHUB_STEP_SUMMARY
           echo "**Commitfest Patch URL**: [$commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
-          echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
+          echo "Here's the list of Container Images that have been built:" >> $GITHUB_STEP_SUMMARY
+          echo "$images_list" >> $GITHUB_STEP_SUMMARY
+
           echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
           echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`sh" >> $GITHUB_STEP_SUMMARY
@@ -97,7 +109,7 @@ jobs:
           echo "metadata:" >> $GITHUB_STEP_SUMMARY
           echo "  name: commitfest-$commitFestPatchID" >> $GITHUB_STEP_SUMMARY
           echo "spec:" >> $GITHUB_STEP_SUMMARY
-          echo "  imageName: $image" >> $GITHUB_STEP_SUMMARY
+          echo "  imageName: $standardImage" >> $GITHUB_STEP_SUMMARY
           echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
           echo "  storage:" >> $GITHUB_STEP_SUMMARY
           echo "    size: 1Gi" >> $GITHUB_STEP_SUMMARY
