@@ -19,6 +19,10 @@ variable "revision" {
   default = "1"
 }
 
+variable "pgMajor" {
+  default = "18"
+}
+
 fullname = ( environment == "testing") ? "${registry}/postgresql-trunk-testing" : "${registry}/postgresql-trunk"
 now = timestamp()
 title = "PostgreSQL Trunk Containers"
@@ -33,7 +37,7 @@ target "default" {
       "standard",
       "postgis"
     ]
-    pgMajor = ["18"]
+    pgMajor = ["${pgMajor}"]
     base = ["debian:bookworm-slim"]
   }
 
@@ -42,7 +46,7 @@ target "default" {
   ]
 
   dockerfile = "Dockerfile"
-  name = "postgresql-${pgMajor}-${tgt}-${distroVersion(base)}"
+  name = "${tgt}"
   tags = [
     "${fullname}:${pgMajor}-${tgt}-${distroVersion(base)}",
     "${fullname}:${pgMajor}-${formatdate("YYYYMMDDhhmm", now)}-${tgt}-${distroVersion(base)}"
