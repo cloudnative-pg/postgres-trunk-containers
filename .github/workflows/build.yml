@@ -14,13 +14,6 @@ on:
       major_version:
         description: "PostgreSQL major version (leave empty for default)"
         required: false
-      extra_tag:
-        description: "Optional extra tag (make sure it starts with the PG major)"
-        required: false
-
-# set up environment variables to be used across all the jobs
-env:
-  REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
 defaults:
   run:
@@ -35,7 +28,8 @@ jobs:
       contents: read
       packages: write
     outputs:
-      pg_image: ${{ env.TAG }}
+      images: ${{ env.IMAGES }}
+      pg_major: ${{ env.PG_MAJOR }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -53,16 +47,6 @@ jobs:
           echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
         fi
 
-    - name: Set tag and optional extra tag
-      run: |
-        TAG="${{ env.REGISTRY }}:${{ env.PG_MAJOR }}-build-${{ github.run_number }}"
-        EXTRA_TAG=""
-        if [[ "${{ github.event.inputs.extra_tag }}" != "" ]]; then
-          EXTRA_TAG="${{ env.REGISTRY }}:${{ github.event.inputs.extra_tag }}"
-        fi
-        echo "TAG=${TAG}" >> $GITHUB_ENV
-        echo "EXTRA_TAG=${EXTRA_TAG}" >> $GITHUB_ENV
-
     - name: Log in to the GitHub Container registry
       uses: docker/login-action@v3
       with:
@@ -70,18 +54,31 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build and push
-      uses: docker/build-push-action@v6
+      uses: docker/bake-action@v6
+      id: build
+      env:
+        environment: production
+        registry: ghcr.io/${{ github.repository_owner }}
+        revision: ${{ github.sha }}
+        pgMajor: ${{ env.PG_MAJOR }}
       with:
-        context: .
+        set: |
+          *.args.PG_REPO=${{ github.event.inputs.pg_repo }}
+          *.args.PG_BRANCH=${{ github.event.inputs.pg_branch }}
+          minimal.tags=${registry}/postgresql-trunk:18-minimal-${{ github.run_number }}
+          standard.tags=${registry}/postgresql-trunk:18-standard-${{ github.run_number }}
+          postgis.tags=${registry}/postgresql-trunk:18-postgis-${{ github.run_number }}
         push: true
-        load: false
-        tags: |
-          ${{ env.TAG }}
-          ${{ env.EXTRA_TAG }}
-        build-args: |
-          PG_REPO=${{ github.event.inputs.pg_repo }}
-          PG_BRANCH=${{ github.event.inputs.pg_branch }}
+
+    # Get a list of the images that were built and pushed.
+    - name: Generated images
+      id: images
+      run: |
+        echo "IMAGES=$(echo '${{ steps.build.outputs.metadata }}' | jq -c '.[]."image.name"')" >> $GITHUB_ENV
 
   generate-summary:
     name: PostgreSQL Image Build summary
@@ -92,11 +89,16 @@ jobs:
       - name: Output summary
         run: |
           pg_major="${{ needs.build-pg.outputs.pg_major }}"
-          image="${{ needs.build-pg.outputs.pg_image }}"
-          imageURL="https://${image}"
+          images="${{ needs.build-pg.outputs.images }}"
+          images_list="$(echo $images | jq -r | tr ' ' '\n' | sed 's/^/https:\/\//')"
+          standardImage="$(echo $images | jq -r | grep standard)"
+          standardImageURL="https://${standardImage}"
+
           echo "# PostgreSQL Image Build summary" >> $GITHUB_STEP_SUMMARY
-          echo "**Container Image**: [$image]($imageURL)" >> $GITHUB_STEP_SUMMARY
-          echo "## CloudNativePG Cluster definition" >> $GITHUB_STEP_SUMMARY
+          echo "Here's the list of images that have been built:" >> $GITHUB_STEP_SUMMARY
+          echo "$images_list" >> $GITHUB_STEP_SUMMARY
+
+          echo "## CloudNativePG Cluster definition (example using the standard image)" >> $GITHUB_STEP_SUMMARY
           echo "You can create a cluster in CloudNativePG running this image:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`sh" >> $GITHUB_STEP_SUMMARY
           echo "(cat <<EOF" >> $GITHUB_STEP_SUMMARY
@@ -105,7 +107,7 @@ jobs:
           echo "metadata:" >> $GITHUB_STEP_SUMMARY
           echo "  name: pg-$pg_major-build" >> $GITHUB_STEP_SUMMARY
           echo "spec:" >> $GITHUB_STEP_SUMMARY
-          echo "  imageName: $image" >> $GITHUB_STEP_SUMMARY
+          echo "  imageName: $standardImage" >> $GITHUB_STEP_SUMMARY
           echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
           echo "  storage:" >> $GITHUB_STEP_SUMMARY
           echo "    size: 1Gi" >> $GITHUB_STEP_SUMMARY
