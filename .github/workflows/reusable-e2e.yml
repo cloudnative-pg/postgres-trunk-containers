@@ -48,6 +48,7 @@ jobs:
       POSTGRES_VERSION: ${{ inputs.major_version }}
       POSTGRES_IMG: ${{ inputs.postgres_img }}
       POSTGRES_KIND: "PostgreSQL"
+      MAJOR_UPGRADE_IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
