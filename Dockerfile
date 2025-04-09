@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM debian:bookworm-slim
+FROM debian:12.10-slim
 
 ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
