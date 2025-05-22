@@ -39,6 +39,19 @@ the designated workflow called "Container Images from Commitfest patch" from the
 The action summary provides all the details you need to effectively use the
 image.
 
+## Building images locally
+
+If you want to build these images locally, first make sure you meet the
+following [prerequisites](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#prerequisites).
+To build and push every flavor (minimal, standard, and PostGIS), run:
+
+```
+docker buildx bake --push
+```
+
+By default, the build process assumes a registry server runs locally at `localhost:5000`.
+You can either [deploy a disposable registry at localhost:5000](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#local-testing), or [specify a different registry](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#the-distribution-registry).
+
 ## License and Copyright
 
 This software is licensed under the [Apache License 2.0](LICENSE).
