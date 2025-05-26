@@ -1,12 +1,13 @@
 # vim:set ft=dockerfile:
 #
-# Copyright The CloudNativePG Contributors
+# Copyright © contributors to CloudNativePG, established as
+# CloudNativePG a Series of LF Projects, LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,18 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM debian:bookworm-slim
+# SPDX-License-Identifier: Apache-2.0
+#
+
+ARG BASE=debian:bookworm-slim
+
+FROM $BASE AS build-layer
 
 ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
 ARG PG_MAJOR=18
-
-# Do not split the description, otherwise we will see a blank space in the labels
-LABEL name="PostgreSQL Container Images" \
-      vendor="The CloudNativePG Contributors" \
-      version="$PG_MAJOR-devel" \
-      summary="PostgreSQL Container images." \
-      description="This Docker image contains a snapshot image of PostgreSQL compiled from Master and Barman Cloud based on Debian bookworm-slim."
 
 COPY build-deps.txt /
 
@@ -38,19 +37,17 @@ RUN apt-get update && \
 		locales-all \
 		ssl-cert \
 		libnss-wrapper \
+		libgssapi-krb5-2 \
 		libxml2 \
 		libllvm16 \
 		libxslt1.1 \
 		xz-utils \
 		zstd \
+		postgresql-common \
 		$(cat /build-deps.txt) && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
 
-# explicitly set user/group IDs
-RUN groupadd -r postgres --gid=999 && \
-	useradd -r -g postgres --uid=26 --home-dir=/var/lib/postgresql --shell=/bin/bash postgres && \
-	mkdir -p /var/lib/postgresql && \
-	chown -R postgres:postgres /var/lib/postgresql
+RUN usermod -u 26 postgres
 
 ENV PG_MAJOR=$PG_MAJOR
 ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
@@ -112,6 +109,16 @@ RUN mkdir -p /usr/src/postgresql && \
 	make install-world-bin && \
 	rm -rf /usr/src/postgresql
 
+# DoD 2.3 - remove setuid/setgid from any binary that not strictly requires it, and before doing that list them on the stdout
+RUN find / -not -path "/proc/*" -perm /6000 -type f -exec ls -ld {} \; -exec chmod a-s {} \; || true
+
+
+FROM build-layer AS minimal
+RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
+USER 26
+
+FROM build-layer AS standard
 # TODO: re-enable once https://github.com/pgaudit/pgaudit/issues/257 is fixed
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
@@ -121,30 +128,42 @@ RUN mkdir -p /usr/src/postgresql && \
 #	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
 #	rm -rf /usr/src/pgaudit
 
-# Purge build dependencies
-RUN apt-get purge -y --autoremove $(cat /build-deps.txt)
-
 # Install barman-cloud
-RUN key='B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8' && \
-	export GNUPGHOME="$(mktemp -d)" && \
-	mkdir -p /usr/local/share/keyrings/ && \
-	gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" && \
-	gpg --batch --export --armor "$key" > /usr/local/share/keyrings/postgres.gpg.asc && \
-	gpgconf --kill all && \
-	rm -rf "$GNUPGHOME" && \
-	aptRepo="[ signed-by=/usr/local/share/keyrings/postgres.gpg.asc ] http://apt.postgresql.org/pub/repos/apt/ bookworm-pgdg main $PG_MAJOR" && \
-	echo "deb $aptRepo" > /etc/apt/sources.list.d/pgdg.list && \
-	apt-get update && \
+RUN apt-get update && \
+	/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
 	apt-get install -y --no-install-recommends \
 		python3-pip \
 		python3-psycopg2 \
 		python3-setuptools \
 	&& \
 	pip3 install --break-system-packages --upgrade pip && \
-	pip3 install --break-system-packages barman[cloud,azure,google,snappy,zstandard,lz4]==3.12.1 boto3==1.35.99 && \
+	pip3 install --break-system-packages barman[cloud,azure,google,snappy,zstandard,lz4]==3.13.2
+
+RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
+USER 26
 
-# DoD 2.3 - remove setuid/setgid from any binary that not strictly requires it, and before doing that list them on the stdout
-RUN find / -not -path "/proc/*" -perm /6000 -type f -exec ls -ld {} \; -exec chmod a-s {} \; || true
+FROM build-layer AS postgis
+ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
+ARG POSTGIS_BRANCH=master
 
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends \
+		libproj25 \
+		libpq5 \
+		libgdal32 \
+		libgeos-c1v5 \
+		libsfcgal1 \
+	&& \
+	mkdir -p /usr/src/postgis && \
+	git clone -b "$POSTGIS_BRANCH" --single-branch "$POSTGIS_REPO" /usr/src/postgis && \
+	cd /usr/src/postgis && \
+	./autogen.sh && \
+	./configure --with-pgconfig=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config --with-sfcgal && \
+	make -j$(nproc) && \
+	make install && \
+	rm -rf /usr/src/postgis
+
+RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
 USER 26
