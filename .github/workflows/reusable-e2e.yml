@@ -28,8 +28,8 @@ on:
 # set up environment variables to be used across all the jobs
 env:
   GOLANG_VERSION: "1.24.x"
-  KIND_VERSION: "v0.27.0"
-  K8S_VERSION: "v1.32.2"
+  KIND_VERSION: "v0.29.0"
+  K8S_VERSION: "v1.33.1"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
 defaults:
@@ -48,6 +48,7 @@ jobs:
       POSTGRES_VERSION: ${{ inputs.major_version }}
       POSTGRES_IMG: ${{ inputs.postgres_img }}
       POSTGRES_KIND: "PostgreSQL"
+      MAJOR_UPGRADE_IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
@@ -126,6 +127,11 @@ jobs:
           docker tag ${{ inputs.postgres_img }} $E2E_PRE_ROLLING_UPDATE_IMG
           docker push $E2E_PRE_ROLLING_UPDATE_IMG
           echo "E2E_PRE_ROLLING_UPDATE_IMG=$E2E_PRE_ROLLING_UPDATE_IMG" >> $GITHUB_ENV
+
+      - name: Setting up default versions
+        run: |
+          # Update pkg/versions/versions.go
+          sed -i '/DefaultImageName *=/s@".*"@"'"${{ inputs.postgres_img }}"'"@' pkg/versions/versions.go
 
       - name: Run Kind End-to-End tests
         run: make e2e-test-kind
