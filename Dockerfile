@@ -17,8 +17,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-
-ARG BASE=debian:bookworm-slim
+ARG BASE=debian:12.10-slim
 
 FROM $BASE AS build-layer
 
