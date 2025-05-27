@@ -82,7 +82,7 @@ jobs:
     - name: Generated images
       id: images
       run: |
-        echo "PG_IMAGE=$(echo '${{ steps.build.outputs.metadata }}' | jq -r '.["standard"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
+        echo "PG_IMAGE=$(echo '${{ steps.build.outputs.metadata }}' | jq -r '.["minimal"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
 
   call-reusable-e2e:
     if: github.event_name == 'schedule'

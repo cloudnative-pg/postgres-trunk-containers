@@ -1,5 +1,5 @@
 {
-  "PG_IMAGE": "ghcr.io/cloudnative-pg/postgresql-trunk:18-standard-bookworm",
+  "PG_IMAGE": "ghcr.io/cloudnative-pg/postgresql-trunk:18-minimal-bookworm",
   "PG_MAJOR": 18,
   "CNPG_BRANCH": "main",
   "TEST_DEPTH": 4,

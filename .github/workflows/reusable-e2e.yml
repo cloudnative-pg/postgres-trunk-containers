@@ -146,10 +146,13 @@ jobs:
           docker push $E2E_PRE_ROLLING_UPDATE_IMG
           echo "E2E_PRE_ROLLING_UPDATE_IMG=$E2E_PRE_ROLLING_UPDATE_IMG" >> $GITHUB_ENV
 
-      - name: Setting up default versions
+      - name: Setting up defaults
         run: |
           # Update pkg/versions/versions.go
           sed -i '/DefaultImageName *=/s@".*"@"'"${{ inputs.postgres_img }}"'"@' pkg/versions/versions.go
+
+          # Exlude backup/recovery tests
+          FEATURE_TYPE="${{ env.FEATURE_TYPE }},!backup-restore"
 
       - name: Run Kind End-to-End tests
         run: make e2e-test-kind
