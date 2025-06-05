@@ -19,6 +19,8 @@ on:
         description: 'E2E feature type filter. See https://github.com/cloudnative-pg/cloudnative-pg/blob/main/contribute/e2e_testing_environment/README.md#using-feature-type-test-selectionfilter'
         required: false
 
+permissions: read-all
+
 jobs:
   evaluate-env:
     name: Evaluate input env variables
@@ -62,6 +64,8 @@ jobs:
     needs:
       - evaluate-env
     uses: ./.github/workflows/reusable-e2e.yml
+    permissions:
+      packages: write
     with:
       postgres_img: ${{ needs.evaluate-env.outputs.pg_image }}
       major_version: ${{ needs.evaluate-env.outputs.pg_major }}
