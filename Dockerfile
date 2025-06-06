@@ -33,7 +33,6 @@ RUN apt-get update && \
 		gnupg \
 		dirmngr \
 		ca-certificates \
-		locales-all \
 		ssl-cert \
 		libnss-wrapper \
 		libgssapi-krb5-2 \
@@ -127,16 +126,9 @@ FROM build-layer AS standard
 #	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
 #	rm -rf /usr/src/pgaudit
 
-# Install barman-cloud
+# Install all locales
 RUN apt-get update && \
-	/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-	apt-get install -y --no-install-recommends \
-		python3-pip \
-		python3-psycopg2 \
-		python3-setuptools \
-	&& \
-	pip3 install --break-system-packages --upgrade pip && \
-	pip3 install --break-system-packages barman[cloud,azure,google,snappy,zstandard,lz4]==3.13.2
+	apt-get install -y --no-install-recommends locales-all
 
 RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*

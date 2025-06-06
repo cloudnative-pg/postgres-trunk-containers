@@ -100,7 +100,7 @@ jobs:
           commitFestURL="https://commitfest.postgresql.org/patch/${commitFestPatchID}"
           images="${{ needs.build-pg.outputs.images }}"
           images_list="$(echo $images | tr ' ' '\n' | sed 's/^/https:\/\//')"
-          standardImage="$(echo $images | tr ' ' '\n' | grep standard)"
+          minimalImage="$(echo $images | tr ' ' '\n' | grep minimal)"
 
           echo "# Commitfest Image Build summary" >> $GITHUB_STEP_SUMMARY
           echo "**Commitfest Patch URL**: [$commitFestPatchID]($commitFestURL)" >> $GITHUB_STEP_SUMMARY
@@ -116,7 +116,7 @@ jobs:
           echo "metadata:" >> $GITHUB_STEP_SUMMARY
           echo "  name: commitfest-$commitFestPatchID" >> $GITHUB_STEP_SUMMARY
           echo "spec:" >> $GITHUB_STEP_SUMMARY
-          echo "  imageName: $standardImage" >> $GITHUB_STEP_SUMMARY
+          echo "  imageName: $minimalImage" >> $GITHUB_STEP_SUMMARY
           echo "  instances: 3" >> $GITHUB_STEP_SUMMARY
           echo "  storage:" >> $GITHUB_STEP_SUMMARY
           echo "    size: 1Gi" >> $GITHUB_STEP_SUMMARY
