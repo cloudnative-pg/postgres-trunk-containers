@@ -152,7 +152,11 @@ jobs:
           sed -i '/DefaultImageName *=/s@".*"@"'"${{ inputs.postgres_img }}"'"@' pkg/versions/versions.go
 
           # Exlude backup/recovery tests
-          echo "FEATURE_TYPE=${{ env.FEATURE_TYPE }},!backup-restore" >> $GITHUB_ENV
+          if [ -z "${{ env.FEATURE_TYPE }}" ]; then
+            echo "FEATURE_TYPE=!backup-restore" >> $GITHUB_ENV
+          else
+            echo "FEATURE_TYPE=${{ env.FEATURE_TYPE }},!backup-restore" >> $GITHUB_ENV
+          fi
 
       - name: Run Kind End-to-End tests
         run: make e2e-test-kind
