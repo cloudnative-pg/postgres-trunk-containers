@@ -1,32 +1,46 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended"],
-    "prConcurrentLimit": 5,
-    "semanticCommits": "enabled",
-    "customManagers": [
-      {
-        "customType": "regex",
-        "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
-        "matchStrings": ["KIND_VERSION: \"(?<currentValue>.*?)\""],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "kubernetes-sigs/kind"
-      },
-      {
-        "customType": "regex",
-        "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
-        "matchStrings": ["K8S_VERSION: \"(?<currentValue>.*?)\""],
-        "datasourceTemplate": "docker",
-        "versioningTemplate": "loose",
-        "depNameTemplate": "kindest/node"
-      },
-      {
-        "customType": "regex",
-        "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
-        "matchStrings": ["GOLANG_VERSION: \"(?<currentValue>.*?)\\.x\""],
-        "datasourceTemplate": "golang-version",
-        "depNameTemplate": "golang",
-        "versioningTemplate": "loose",
-        "extractVersionTemplate": "^(?<version>\\d+\\.\\d+)"
-      }
-    ]
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "prConcurrentLimit": 5,
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "KIND_VERSION: \"(?<currentValue>.*?)\""
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "kubernetes-sigs/kind"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "K8S_VERSION: \"(?<currentValue>.*?)\""
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "loose",
+      "depNameTemplate": "kindest/node"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "GOLANG_VERSION: \"(?<currentValue>.*?)\\.x\""
+      ],
+      "datasourceTemplate": "golang-version",
+      "depNameTemplate": "golang",
+      "versioningTemplate": "loose",
+      "extractVersionTemplate": "^(?<version>\\d+\\.\\d+)"
+    }
+  ]
 }
