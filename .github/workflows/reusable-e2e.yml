@@ -236,6 +236,17 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      # Archive Cluster logs
+      - name: Archive e2e logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-logs-${{ env.ID }}
+          path: |
+            tests/e2e/cluster_logs/**
+          retention-days: 7
+          if-no-files-found: ignore
+
   # Summarize E2E test results, display in the GitHub 'summary' view
   summarize-e2e-tests:
     name: E2E test suite
