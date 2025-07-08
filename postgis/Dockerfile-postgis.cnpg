@@ -1,51 +1,52 @@
-FROM ghcr.io/cloudnative-pg/postgresql-trunk:18-devel AS builder
+FROM ghcr.io/cloudnative-pg/postgresql:18beta1-minimal-bookworm AS builder
 
 USER 0
 
 RUN set -eux; \
+	ldconfig -p | awk '{print $NF}' | grep '^/' | sort | uniq > /tmp/source.out && \
 	mkdir -p /opt/extension && \
 	apt-get update && \
 	apt-get install -y --no-install-recommends \
-	clang-16 \
-	llvm-16-dev \
-	git \
-	autoconf \
-	automake \
-	bison \
-	build-essential \
-	ca-certificates \
-	cmake \
-	docbook-xml \
-	docbook5-xml \
-	g++ \
-	libboost-all-dev \
-	libcunit1-dev \
-	libcurl4-gnutls-dev \
-	libgmp-dev \
-	libjson-c-dev \
-	libmpfr-dev \
-	libpcre3-dev \
-	libprotobuf-c-dev \
-	libsqlite3-dev \
-	libtiff-dev \
-	libtool \
-	libxml2-dev \
-	libxml2-utils \
-	make \
-	pkg-config \
-	protobuf-c-compiler \
-	xsltproc \
-	libsfcgal-dev \
-	# runtime deps
-	libproj25 \
-	libproj-dev \
-	libpq5 \
-	libgdal-dev \
-	libgdal32 \
-	libgeos-dev \
-	libgeos-c1v5 \
-	libc6 \
-	libsfcgal1 \
+		"postgresql-server-dev-18=18~beta1*" \
+		clang-16 \
+		llvm-16-dev \
+		git \
+		autoconf \
+		automake \
+		bison \
+		build-essential \
+		ca-certificates \
+		cmake \
+		docbook-xml \
+		docbook5-xml \
+		g++ \
+		libboost-all-dev \
+		libcunit1-dev \
+		libcurl4-gnutls-dev \
+		libgmp-dev \
+		libjson-c-dev \
+		libmpfr-dev \
+		libpcre3-dev \
+		libprotobuf-c-dev \
+		libsqlite3-dev \
+		libtiff-dev \
+		libtool \
+		libxml2-dev \
+		libxml2-utils \
+		make \
+		pkg-config \
+		protobuf-c-compiler \
+		xsltproc \
+		libsfcgal-dev \
+		libproj25 \
+		libproj-dev \
+		libpq5 \
+		libgdal-dev \
+		libgdal32 \
+		libgeos-dev \
+		libgeos-c1v5 \
+		libc6 \
+		libsfcgal1 \
 	&& \
 	git clone -b master --single-branch https://github.com/postgis/postgis.git /tmp/postgis && \
 	cd /tmp/postgis && \
@@ -53,96 +54,15 @@ RUN set -eux; \
 	./configure --with-pgconfig=/usr/lib/postgresql/18/bin/pg_config --prefix=/opt/extension/ --with-sfcgal && \
 	make -j$(nproc) && \
 	make install && \
-	make install datadir=/opt/extension/share/ pkglibdir=/opt/extension/lib/
+	make install datadir=/opt/extension/share/ pkglibdir=/opt/extension/lib/ && \
+	ldd /opt/extension/lib/*.so | awk '{print $3}' | grep '^/' | sort | uniq > /tmp/deps.out && \
+	grep -Fvx -f /tmp/source.out /tmp/deps.out > /tmp/libraries.out && \
+	mkdir -p /opt/extension/system && \
+	cat /tmp/libraries.out | xargs -I{} cp {} /opt/extension/system
 
 FROM scratch
 
-COPY --from=builder /opt/extension/bin/* /bin/
-COPY --from=builder /opt/extension/lib/* /lib/
-COPY --from=builder /opt/extension/share/extension/* /share/
-COPY --from=builder /opt/extension/share/contrib/* /contrib/
-
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgdal.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos_c.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libjson-c.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpcre2*.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libproj.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libprotobuf-c.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libSFCGAL.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libstdc++.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libxml2.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libtiff.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libwebp.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libLerc.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libjbig.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libjpeg.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libdeflate.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnghttp2.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/librtmp.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libssh2.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpsl.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libbrotlidec.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libbrotlicommon.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libodbc.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libodbcinst.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgmpxx.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libblosc.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libboost_serialization.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libmpfr.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libqhull_r.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libxerces-c*.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeotiff.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libheif.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpng16.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpoppler.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgif.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnetcdf.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libcfitsio.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libhdf5_serial.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libhdf5_serial_hl.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libopenjp2.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libkmlbase.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libkmldom.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libkmlengine.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfyba.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libspatialite.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libmariadb.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfreexl.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libltdl.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libsnappy.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libblas.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/liblapack.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libarpack.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libsuperlu.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libx265.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libde265.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libdav1d.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libaom.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfreetype.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfontconfig.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/liblcms2.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libsz.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libminizip.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/liburiparser.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfyut.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libfygm.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/librttopo.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgfortran.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnuma.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libaec.so.* /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libquadmath.so.* /lib/
-
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnss3.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnssutil3.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libsmime3.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libplc4.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libplds4.so /lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnspr4.so /lib/
-
-COPY --from=builder /usr/lib/libmfhdfalt.so.* /lib/
-COPY --from=builder /usr/lib/libdfalt.so.* /lib/
-COPY --from=builder /usr/lib/libogdi.so.* /lib/
-COPY --from=builder /usr/lib/libarmadillo.so.* /lib/
+COPY --from=builder /opt/extension/bin/ /bin/
+COPY --from=builder /opt/extension/lib/ /lib/
+COPY --from=builder /opt/extension/share/ /share/
+COPY --from=builder /opt/extension/system/ /system/
