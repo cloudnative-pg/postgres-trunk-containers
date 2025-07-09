@@ -71,9 +71,9 @@ jobs:
         set: |
           *.args.PG_REPO=${{ github.event.inputs.pg_repo }}
           *.args.PG_BRANCH=${{ github.event.inputs.pg_branch }}
-          minimal.tags=${{ env.registry }}/postgresql-trunk:18-minimal-${{ github.run_number }}
-          standard.tags=${{ env.registry }}/postgresql-trunk:18-standard-${{ github.run_number }}
-          postgis.tags=${{ env.registry }}/postgresql-trunk:18-postgis-${{ github.run_number }}
+          minimal.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ github.run_number }}
+          standard.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ github.run_number }}
+          postgis.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ github.run_number }}
         push: true
 
     # Get a list of the images that were built and pushed.
