@@ -72,9 +72,9 @@ jobs:
         set: |
           *.args.PG_REPO=https://github.com/postgresql-cfbot/postgresql.git
           *.args.PG_BRANCH=${{ env.BRANCH }}
-          minimal.tags=${{ env.registry }}/postgresql-trunk:18-minimal-${{ env.TAG }}
-          standard.tags=${{ env.registry }}/postgresql-trunk:18-standard-${{ env.TAG }}
-          postgis.tags=${{ env.registry }}/postgresql-trunk:18-postgis-${{ env.TAG }}
+          minimal.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ env.TAG }}
+          standard.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ env.TAG }}
+          postgis.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ env.TAG }}
         push: true
 
     # Get a list of the images that were built and pushed.
