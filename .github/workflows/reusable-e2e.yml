@@ -148,9 +148,6 @@ jobs:
 
       - name: Setting up defaults
         run: |
-          # Update pkg/versions/versions.go
-          sed -i '/DefaultImageName *=/s@".*"@"'"${{ inputs.postgres_img }}"'"@' pkg/versions/versions.go
-
           # Exlude backup/recovery tests
           if [ -z "${{ env.FEATURE_TYPE }}" ]; then
             echo "FEATURE_TYPE=!backup-restore" >> $GITHUB_ENV
