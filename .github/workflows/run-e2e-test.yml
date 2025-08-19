@@ -33,7 +33,7 @@ jobs:
       feature_type: ${{ env.FEATURE_TYPE }}
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set env variables from defaults.json
       run: |
