@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-ARG BASE=debian:12.11-slim
+ARG BASE=debian:13.1-slim
 
 FROM $BASE AS build-layer
 

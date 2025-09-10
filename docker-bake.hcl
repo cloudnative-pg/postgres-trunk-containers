@@ -57,7 +57,7 @@ target "default" {
       "postgis"
     ]
     pgMajor = ["${pgMajor}"]
-    base = ["debian:bookworm-slim"]
+    base = ["debian:trixie-slim"]
   }
 
   platforms = [
