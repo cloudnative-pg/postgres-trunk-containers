@@ -37,7 +37,7 @@ RUN apt-get update && \
 		libnss-wrapper \
 		libgssapi-krb5-2 \
 		libxml2 \
-		libllvm16 \
+		libllvm19 \
 		libxslt1.1 \
 		xz-utils \
 		zstd \
@@ -55,8 +55,8 @@ ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
 RUN mkdir -p /usr/src/postgresql && \
 	git clone -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
 	cd /usr/src/postgresql && \
-	export LLVM_CONFIG="/usr/lib/llvm-16/bin/llvm-config" && \
-	export CLANG=clang-16 && \
+	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
+	export CLANG=clang-19 && \
 	./configure \
 		--build=x86_64-linux-gnu \
 		--prefix=/usr \
@@ -142,9 +142,9 @@ RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
 		libproj25 \
 		libpq5 \
-		libgdal32 \
-		libgeos-c1v5 \
-		libsfcgal1 \
+		libgdal36 \
+		libgeos-c1t64 \
+		libsfcgal2 \
 	&& \
 	mkdir -p /usr/src/postgis && \
 	git clone -b "$POSTGIS_BRANCH" --single-branch "$POSTGIS_REPO" /usr/src/postgis && \

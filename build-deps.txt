@@ -3,7 +3,7 @@ automake
 bison
 libjson-c-dev
 build-essential
-clang-16
+clang-19
 cmake
 docbook-xml
 docbook5-xml
@@ -22,7 +22,6 @@ libkrb5-dev
 libldap-dev
 liblz4-dev
 libpam0g-dev
-libpcre3-dev
 libperl-dev
 libproj-dev
 libprotobuf-c-dev
@@ -37,7 +36,7 @@ libtool
 libxml2-utils
 libxslt1-dev
 libzstd-dev
-llvm-16-dev
+llvm-19-dev
 pkg-config
 protobuf-c-compiler
 python3-dev
