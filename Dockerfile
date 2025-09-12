@@ -41,6 +41,7 @@ RUN apt-get update && \
 		libxslt1.1 \
 		xz-utils \
 		zstd \
+		libicu76 \
 		postgresql-common \
 		$(cat /build-deps.txt) && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
