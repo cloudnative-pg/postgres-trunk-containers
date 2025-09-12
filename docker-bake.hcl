@@ -54,7 +54,8 @@ target "default" {
     tgt = [
       "minimal",
       "standard",
-      "postgis"
+      // # TODO: re-enable postgis once https://trac.osgeo.org/postgis/ticket/5965 is fixed
+      // "postgis"
     ]
     pgMajor = ["${pgMajor}"]
     base = ["debian:trixie-slim"]
