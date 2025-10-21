@@ -38,6 +38,9 @@ RUN apt-get update && \
 		ssl-cert \
 		libnss-wrapper \
 		libgssapi-krb5-2 \
+		libprotobuf-c1 \
+		libnuma1 \
+		liburing2 \
 		libxml2 \
 		libllvm19 \
 		libxslt1.1 \
@@ -83,6 +86,8 @@ RUN apt-get update && \
 		--with-systemd \
 		--with-selinux \
 		--with-zstd \
+		--with-liburing \
+		--with-libnuma \
 		--with-extra-version=-$(git rev-parse --short HEAD) \
 		--datarootdir=/usr/share/ \
 		--infodir=/usr/share/info \

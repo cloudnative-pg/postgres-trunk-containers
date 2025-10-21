@@ -1,12 +1,11 @@
 autoconf
 automake
 bison
-libjson-c-dev
 build-essential
 clang-19
 cmake
-docbook-xml
 docbook5-xml
+docbook-xml
 flex
 gettext
 git
@@ -18,9 +17,11 @@ libgdal-dev
 libgeos-dev
 libgmp-dev
 libipc-run-perl
+libjson-c-dev
 libkrb5-dev
 libldap-dev
 liblz4-dev
+libnuma-dev
 libpam0g-dev
 libperl-dev
 libproj-dev
@@ -33,6 +34,7 @@ libssl-dev
 libsystemd-dev
 libtiff-dev
 libtool
+liburing-dev
 libxml2-utils
 libxslt1-dev
 libzstd-dev
