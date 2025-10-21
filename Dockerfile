@@ -118,14 +118,13 @@ RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 USER 26
 
 FROM build-layer AS standard
-# TODO: re-enable once https://github.com/pgaudit/pgaudit/issues/257 is fixed
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-# RUN mkdir -p /usr/src/pgaudit && \
-#	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit && \
-#	cd /usr/src/pgaudit && \
-#	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
-#	rm -rf /usr/src/pgaudit
+RUN mkdir -p /usr/src/pgaudit && \
+	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit && \
+	cd /usr/src/pgaudit && \
+	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
+	rm -rf /usr/src/pgaudit
 
 # Install all locales
 RUN apt-get update && \
