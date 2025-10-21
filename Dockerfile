@@ -19,7 +19,7 @@
 #
 ARG BASE=debian:13.1-slim
 
-FROM $BASE AS build-layer
+FROM $BASE AS minimal
 
 ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
@@ -27,9 +27,11 @@ ARG PG_MAJOR=19
 
 COPY build-deps.txt /
 
+ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
+
 # Install runtime and build dependencies
 RUN apt-get update && \
-	apt-get install -y --no-install-recommends \
+	apt-get install -y --no-install-recommends -o Dpkg::::="--force-confdef" -o Dpkg::::="--force-confold" \
 		gnupg \
 		dirmngr \
 		ca-certificates \
@@ -43,17 +45,11 @@ RUN apt-get update && \
 		zstd \
 		libicu76 \
 		postgresql-common \
-		$(cat /build-deps.txt) && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
-
-RUN usermod -u 26 postgres
-
-ENV PG_MAJOR=$PG_MAJOR
-ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
-
-# Build PostgreSQL
-# Partially refer to https://github.com/docker-library/postgres/blob/master/16/alpine3.21/Dockerfile#L119-L159
-RUN mkdir -p /usr/src/postgresql && \
+		$(cat /build-deps.txt) \
+	&& \
+	usermod -u 26 postgres && \
+	# Build PostgreSQL
+	mkdir -p /usr/src/postgresql && \
 	git clone -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
 	cd /usr/src/postgresql && \
 	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
@@ -106,40 +102,54 @@ RUN mkdir -p /usr/src/postgresql && \
 	&& \
 	make -j "$(nproc)" world-bin && \
 	make install-world-bin && \
-	rm -rf /usr/src/postgresql
+	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgresql
 
-# DoD 2.3 - remove setuid/setgid from any binary that not strictly requires it, and before doing that list them on the stdout
-RUN find / -not -path "/proc/*" -perm /6000 -type f -exec ls -ld {} \; -exec chmod a-s {} \; || true
-
-
-FROM build-layer AS minimal
-RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
 USER 26
 
-FROM build-layer AS standard
+FROM minimal AS standard
+USER root
+
 # Build PgAudit
 # See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-RUN mkdir -p /usr/src/pgaudit && \
-	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit && \
-	cd /usr/src/pgaudit && \
-	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
-	rm -rf /usr/src/pgaudit
+# TODO: uncomment when https://github.com/pgaudit/pgaudit/issues/257 is fixed
+#RUN apt-get update && \
+#	apt-get install -y --no-install-recommends \
+#		build-essential \
+#		git \
+#		libssl-dev \
+#		libkrb5-dev \
+#	&& \
+#	mkdir -p /usr/src/pgaudit && \
+#	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit && \
+#	cd /usr/src/pgaudit && \
+#	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
+#	apt-get purge -y --auto-remove \
+#		build-essential \
+#		git \
+#		libssl-dev \
+#		libkrb5-dev \
+#	&& \
+#	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+#	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/pgaudit
 
 # Install all locales
 RUN apt-get update && \
-	apt-get install -y --no-install-recommends locales-all
-
-RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	apt-get install -y --no-install-recommends locales-all && \
 	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
+
 USER 26
 
-FROM build-layer AS postgis
+FROM standard AS postgis
+USER root
 ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
 ARG POSTGIS_BRANCH=master
 
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
+		$(cat /build-deps.txt) \
+		# runtime deps
 		libproj25 \
 		libpq5 \
 		libgdal36 \
@@ -153,8 +163,8 @@ RUN apt-get update && \
 	./configure --with-pgconfig=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config --with-sfcgal && \
 	make -j$(nproc) && \
 	make install && \
-	rm -rf /usr/src/postgis
+	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis
 
-RUN apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/*
 USER 26
