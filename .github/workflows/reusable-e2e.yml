@@ -18,7 +18,7 @@ on:
         description: 'E2E test level: 0(highest) to 4(lowest)'
         required: false
         type: string
-        default: 4
+        default: "4"
       feature_type:
         description: 'E2E feature type filter'
         required: false
@@ -199,7 +199,9 @@ jobs:
           if [ -f tests/e2e/out/upgrade_report.json ]; then
             rm tests/e2e/out/upgrade_report.json
           fi
-          rm tests/e2e/out/report.json
+          if [ -f tests/e2e/out/report.json ]; then
+            rm tests/e2e/out/report.json
+          fi
 
       # Archive logs for failed test cases if there are any
       - name: Archive Kind logs
@@ -252,22 +254,15 @@ jobs:
         with:
           path: test-artifacts
           pattern: testartifacts-*
-
-      - name: Flatten all artifacts onto directory
-        # The download-artifact action, since we did not give it a name,
-        # downloads all artifacts and creates a new folder for each.
-        # In this step we bring all the JSONs to a single folder
-        run: |
-          mkdir test-artifacts/data
-          mv test-artifacts/*/*.json test-artifacts/data
+          merge-multiple: true
 
       - name: Display the structure of the artifact folder
-        run: ls -R test-artifacts/data
+        run: ls -R test-artifacts
 
       - name: Compute the E2E test summary
         uses: cloudnative-pg/ciclops@v1.3.2
         with:
-          artifact_directory: test-artifacts/data
+          artifact_directory: test-artifacts
 
       - name: Delete the downloaded files
         run: rm -rf test-artifacts
