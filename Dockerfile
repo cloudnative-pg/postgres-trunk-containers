@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-ARG BASE=debian:13.1-slim
+ARG BASE=debian:13.2-slim
 
 FROM $BASE AS minimal
 
