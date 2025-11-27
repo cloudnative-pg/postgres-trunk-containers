@@ -53,7 +53,6 @@ jobs:
       POSTGRES_IMG: ${{ inputs.postgres_img }}
       POSTGRES_KIND: "PostgreSQL"
       POSTGRES_MAJOR_UPGRADE_IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-      POSTGIS_MAJOR_UPGRADE_IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
       DOCKER_SERVER: ghcr.io
       DOCKER_USERNAME: ${{ github.actor }}
@@ -137,9 +136,9 @@ jobs:
         run: |
           # Exlude backup/recovery tests
           if [ -z "${{ env.FEATURE_TYPE }}" ]; then
-            echo "FEATURE_TYPE=!backup-restore" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions)" >> $GITHUB_ENV
           else
-            echo "FEATURE_TYPE=${{ env.FEATURE_TYPE }},!backup-restore" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions), ${{ env.FEATURE_TYPE }}" >> $GITHUB_ENV
           fi
 
       - name: Run Kind End-to-End tests
