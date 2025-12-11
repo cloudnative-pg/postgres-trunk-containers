@@ -116,29 +116,6 @@ USER 26
 FROM minimal AS standard
 USER root
 
-# Build PgAudit
-# See to https://github.com/pgaudit/pgaudit/blob/master/README.md#compile-and-install
-# TODO: uncomment when https://github.com/pgaudit/pgaudit/issues/257 is fixed
-#RUN apt-get update && \
-#	apt-get install -y --no-install-recommends \
-#		build-essential \
-#		git \
-#		libssl-dev \
-#		libkrb5-dev \
-#	&& \
-#	mkdir -p /usr/src/pgaudit && \
-#	git clone -b main --single-branch https://github.com/pgaudit/pgaudit.git /usr/src/pgaudit && \
-#	cd /usr/src/pgaudit && \
-#	make install USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
-#	apt-get purge -y --auto-remove \
-#		build-essential \
-#		git \
-#		libssl-dev \
-#		libkrb5-dev \
-#	&& \
-#	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
-#	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/pgaudit
-
 # Install all locales
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends locales-all && \
