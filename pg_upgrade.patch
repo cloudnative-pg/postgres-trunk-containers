@@ -1,0 +1,37 @@
+From 39dea21ef1cb31928c6cda8f8da7ca3f0957bd9d Mon Sep 17 00:00:00 2001
+From: "Jonathan Gonzalez V." <jonathan.abdiel@gmail.com>
+Date: Mon, 23 Feb 2026 22:27:51 +0100
+Subject: [PATCH v1 1/1] Strip `$libdir` during pg_upgrade starting on 19.
+
+With the commit 4f7f7b03758 extension_control_path GUC was included,
+while some test were added, is missing to handle the hardcoded `$libdir/`
+path during the execution of `pg_upgrade` for the the installed
+extensions using the extension_control_path GUC
+
+Signed-off-by: Jonathan Gonzalez V. <jonathan.abdiel@gmail.com>
+---
+ src/bin/pg_upgrade/function.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/bin/pg_upgrade/function.c b/src/bin/pg_upgrade/function.c
+index 850c9238c11..5435024ccdb 100644
+--- a/src/bin/pg_upgrade/function.c
++++ b/src/bin/pg_upgrade/function.c
+@@ -120,6 +120,15 @@ get_loadable_libraries(void)
+ 		{
+ 			char	   *lib = PQgetvalue(res, rowno, 0);
+ 
++			/*
++			 * Starting on version 18, the extension may be loaded using
++			 * extension_Control_path some extension have the `$libdir/`
++			 * hardcoded, we should remove it to allow the upgrade to version
++			 * 19 or above.
++			 */
++			if (strncmp(lib, "$libdir/", 8) == 0)
++				lib += 8;
++
+ 			os_info.libraries[totaltups].name = pg_strdup(lib);
+ 			os_info.libraries[totaltups].dbnum = dbnum;
+ 
+-- 
+2.51.0

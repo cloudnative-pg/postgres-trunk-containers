@@ -26,6 +26,7 @@ ARG PG_BRANCH=master
 ARG PG_MAJOR=19
 
 COPY build-deps.txt /
+COPY pg_upgrade.patch /
 
 ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
 
@@ -55,6 +56,10 @@ RUN apt-get update && \
 	mkdir -p /usr/src/postgresql && \
 	git clone -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
 	cd /usr/src/postgresql && \
+	# Applying patch
+	git config user.name "CI Builder" && \
+	git config user.email "ci@example.com" && \
+	git am /pg_upgrade.patch && \
 	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
 	export CLANG=clang-19 && \
 	./configure \
