@@ -38,14 +38,18 @@ jobs:
 
     # Inputs have priority over defaults.json.
     - name: Evaluate E2E workflow inputs
+      env:
+        INPUT_MAJOR_VERSION: ${{ github.event.inputs.major_version }}
       run: |
-        if [[ -n "${{ github.event.inputs.major_version }}" ]]; then
-          echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_MAJOR_VERSION}" ]]; then
+          echo "PG_MAJOR=${INPUT_MAJOR_VERSION}" >> $GITHUB_ENV
         fi
 
     - name: Set commitfest branch and tag
+      env:
+        INPUT_PATCH_ID: ${{ github.event.inputs.patch_id }}
       run: |
-        BRANCH="cf/${{ github.event.inputs.patch_id }}"
+        BRANCH="cf/${INPUT_PATCH_ID}"
         TAG="${BRANCH////-}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
@@ -80,8 +84,10 @@ jobs:
     # Get a list of the images that were built and pushed.
     - name: Generated images
       id: images
+      env:
+        BUILD_METADATA: ${{ steps.build.outputs.metadata }}
       run: |
-        IMAGES="$(echo '${{ steps.build.outputs.metadata }}' | jq -r '.[]."image.name"')"
+        IMAGES="$(echo "${BUILD_METADATA}" | jq -r '.[]."image.name"')"
         {
           echo 'IMAGES<<EOF'
           echo "${IMAGES}"
@@ -95,10 +101,13 @@ jobs:
       - build-pg
     steps:
       - name: Output summary
+        env:
+          INPUT_PATCH_ID: ${{ github.event.inputs.patch_id }}
+          BUILD_PG_IMAGES: ${{ needs.build-pg.outputs.images }}
         run: |
-          commitFestPatchID=${{ github.event.inputs.patch_id }}
+          commitFestPatchID="${INPUT_PATCH_ID}"
           commitFestURL="https://commitfest.postgresql.org/patch/${commitFestPatchID}"
-          images="${{ needs.build-pg.outputs.images }}"
+          images="${BUILD_PG_IMAGES}"
           images_list="$(echo $images | tr ' ' '\n' | sed 's/^/https:\/\//')"
           minimalImage="$(echo $images | tr ' ' '\n' | grep minimal)"
 

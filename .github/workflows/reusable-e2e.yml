@@ -126,20 +126,23 @@ jobs:
 
       # The version of operator to upgrade FROM, in the rolling upgrade E2E test
       - name: Retag the image to create E2E_PRE_ROLLING_UPDATE_IMG
+        env:
+          INPUT_MAJOR_VERSION: ${{ inputs.major_version }}
+          INPUT_POSTGRES_IMG: ${{ inputs.postgres_img }}
         run: |
-          E2E_PRE_ROLLING_UPDATE_IMG="${{ env.REGISTRY }}:${{ inputs.major_version }}-rolling-upgrade-e2e-${{ github.run_number }}"
-          docker pull ${{ inputs.postgres_img }}
-          docker tag ${{ inputs.postgres_img }} $E2E_PRE_ROLLING_UPDATE_IMG
+          E2E_PRE_ROLLING_UPDATE_IMG="${REGISTRY}:${INPUT_MAJOR_VERSION}-rolling-upgrade-e2e-${GITHUB_RUN_NUMBER}"
+          docker pull "${INPUT_POSTGRES_IMG}"
+          docker tag "${INPUT_POSTGRES_IMG}" $E2E_PRE_ROLLING_UPDATE_IMG
           docker push $E2E_PRE_ROLLING_UPDATE_IMG
           echo "E2E_PRE_ROLLING_UPDATE_IMG=$E2E_PRE_ROLLING_UPDATE_IMG" >> $GITHUB_ENV
 
       - name: Setting up defaults
         run: |
           # Exlude backup/recovery and image-volume tests
-          if [ -z "${{ env.FEATURE_TYPE }}" ]; then
+          if [ -z "${FEATURE_TYPE}" ]; then
             echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions)" >> $GITHUB_ENV
           else
-            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions) && ${{ env.FEATURE_TYPE }}" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions) && ${FEATURE_TYPE}" >> $GITHUB_ENV
           fi
 
       - name: Run Kind End-to-End tests
@@ -168,12 +171,12 @@ jobs:
         run: |
           set +x
           python .github/generate-test-artifacts.py \
-            -o testartifacts-${{ env.ID }} \
+            -o "testartifacts-${ID}" \
             -f tests/e2e/out/report.json \
             --environment=true
           if [ -f tests/e2e/out/upgrade_report.json ]; then
             python .github/generate-test-artifacts.py \
-              -o testartifacts-${{ env.ID }} \
+              -o "testartifacts-${ID}" \
               -f tests/e2e/out/upgrade_report.json \
               --environment=true
           fi
