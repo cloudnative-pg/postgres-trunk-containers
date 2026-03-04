@@ -46,15 +46,19 @@ jobs:
 
     # Inputs have priority over defaults.json.
     - name: Evaluate E2E workflow inputs
+      env:
+        INPUT_CNPG_BRANCH: ${{ github.event.inputs.cnpg_branch }}
+        INPUT_TEST_DEPTH: ${{ github.event.inputs.test_depth }}
+        INPUT_FEATURE_TYPE: ${{ github.event.inputs.feature_type }}
       run: |
-        if [[ -n "${{ github.event.inputs.cnpg_branch }}" ]]; then
-          echo "CNPG_BRANCH=${{ github.event.inputs.cnpg_branch }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_CNPG_BRANCH}" ]]; then
+          echo "CNPG_BRANCH=${INPUT_CNPG_BRANCH}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.test_depth }}" ]]; then
-          echo "TEST_DEPTH=${{ github.event.inputs.test_depth }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_TEST_DEPTH}" ]]; then
+          echo "TEST_DEPTH=${INPUT_TEST_DEPTH}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.feature_type }}" ]]; then
-          echo "FEATURE_TYPE=${{ github.event.inputs.feature_type }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_FEATURE_TYPE}" ]]; then
+          echo "FEATURE_TYPE=${INPUT_FEATURE_TYPE}" >> $GITHUB_ENV
         fi
 
     - name: Log in to the GitHub Container registry
@@ -81,8 +85,10 @@ jobs:
     # Get a list of the images that were built and pushed. We only care about a single tag for each image.
     - name: Generated images
       id: images
+      env:
+        BUILD_METADATA: ${{ steps.build.outputs.metadata }}
       run: |
-        echo "PG_IMAGE=$(echo '${{ steps.build.outputs.metadata }}' | jq -r '.["minimal"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
+        echo "PG_IMAGE=$(echo "${BUILD_METADATA}" | jq -r '.["minimal"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
 
   call-reusable-e2e:
     if: github.event_name == 'schedule'

@@ -43,21 +43,27 @@ jobs:
 
     # Inputs have priority over defaults.json.
     - name: Evaluate E2E workflow inputs
+      env:
+        INPUT_POSTGRES_IMG: ${{ github.event.inputs.postgres_img }}
+        INPUT_MAJOR_VERSION: ${{ github.event.inputs.major_version }}
+        INPUT_CNPG_BRANCH: ${{ github.event.inputs.cnpg_branch }}
+        INPUT_TEST_DEPTH: ${{ github.event.inputs.test_depth }}
+        INPUT_FEATURE_TYPE: ${{ github.event.inputs.feature_type }}
       run: |
-        if [[ -n "${{ github.event.inputs.postgres_img }}" ]]; then
-          echo "PG_IMAGE=${{ github.event.inputs.postgres_img }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_POSTGRES_IMG}" ]]; then
+          echo "PG_IMAGE=${INPUT_POSTGRES_IMG}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.major_version }}" ]]; then
-          echo "PG_MAJOR=${{ github.event.inputs.major_version }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_MAJOR_VERSION}" ]]; then
+          echo "PG_MAJOR=${INPUT_MAJOR_VERSION}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.cnpg_branch }}" ]]; then
-          echo "CNPG_BRANCH=${{ github.event.inputs.cnpg_branch }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_CNPG_BRANCH}" ]]; then
+          echo "CNPG_BRANCH=${INPUT_CNPG_BRANCH}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.test_depth }}" ]]; then
-          echo "TEST_DEPTH=${{ github.event.inputs.test_depth }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_TEST_DEPTH}" ]]; then
+          echo "TEST_DEPTH=${INPUT_TEST_DEPTH}" >> $GITHUB_ENV
         fi
-        if [[ -n "${{ github.event.inputs.feature_type }}" ]]; then
-          echo "FEATURE_TYPE=${{ github.event.inputs.feature_type }}" >> $GITHUB_ENV
+        if [[ -n "${INPUT_FEATURE_TYPE}" ]]; then
+          echo "FEATURE_TYPE=${INPUT_FEATURE_TYPE}" >> $GITHUB_ENV
         fi
 
   call-reusable-e2e:
