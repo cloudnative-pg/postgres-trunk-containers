@@ -108,7 +108,7 @@ jobs:
           echo PWD=$(pwd) >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Install Kind
         uses: helm/kind-action@v1.14.0
