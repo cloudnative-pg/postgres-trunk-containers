@@ -28,19 +28,6 @@
       "datasourceTemplate": "docker",
       "versioningTemplate": "loose",
       "depNameTemplate": "kindest/node"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github\\/workflows\\/[^/]+\\.ya?ml$/"
-      ],
-      "matchStrings": [
-        "GOLANG_VERSION: \"(?<currentValue>.*?)\\.x\""
-      ],
-      "datasourceTemplate": "golang-version",
-      "depNameTemplate": "golang",
-      "versioningTemplate": "loose",
-      "extractVersionTemplate": "^(?<version>\\d+\\.\\d+)"
     }
   ]
 }
