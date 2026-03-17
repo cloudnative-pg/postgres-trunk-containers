@@ -126,7 +126,7 @@ USER 26
 FROM standard AS postgis
 USER root
 ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
-ARG POSTGIS_BRANCH=master
+ARG POSTGIS_BRANCH=stable-3.6
 
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
