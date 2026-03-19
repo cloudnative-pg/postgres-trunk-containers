@@ -127,6 +127,8 @@ FROM standard AS postgis
 USER root
 ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
 ARG POSTGIS_BRANCH=master
+ARG ADDRESS_STANDARDIZER_REPO=https://github.com/postgis/address_standardizer.git
+ARG ADDRESS_STANDARDIZER_BRANCH=main
 
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
@@ -137,7 +139,11 @@ RUN apt-get update && \
 		libgdal36 \
 		libgeos-c1t64 \
 		libsfcgal2 \
+		# address_standardizer
+		libpcre2-8-0 \
+		libpcre2-posix3 \
 	&& \
+	# PostGIS
 	mkdir -p /usr/src/postgis && \
 	git clone -b "$POSTGIS_BRANCH" --single-branch "$POSTGIS_REPO" /usr/src/postgis && \
 	cd /usr/src/postgis && \
@@ -145,8 +151,15 @@ RUN apt-get update && \
 	./configure --with-pgconfig=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config --with-sfcgal && \
 	make -j$(nproc) && \
 	make install && \
+	# address_standardizer
+	mkdir -p /usr/src/address_standardizer && \
+	git clone -b "$ADDRESS_STANDARDIZER_BRANCH" --single-branch "$ADDRESS_STANDARDIZER_REPO" /usr/src/address_standardizer && \
+	cd /usr/src/address_standardizer && \
+	make && \
+	make install && \
+	# Cleanup
 	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis /usr/src/address_standardizer
 
 USER 26
