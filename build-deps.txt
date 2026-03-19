@@ -4,8 +4,8 @@ bison
 build-essential
 clang-19
 cmake
-docbook5-xml
 docbook-xml
+docbook5-xml
 flex
 gettext
 git
@@ -23,6 +23,7 @@ libldap-dev
 liblz4-dev
 libnuma-dev
 libpam0g-dev
+libpcre2-dev
 libperl-dev
 libproj-dev
 libprotobuf-c-dev
