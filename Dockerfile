@@ -157,7 +157,7 @@ RUN apt-get update && \
 	cd /usr/src/address_standardizer && \
 	make && \
 	make install && \
-	ln -s /usr/lib/x86_64-linux-gnu/postgresql/address_standardizer.so /usr/lib/x86_64-linux-gnu/postgresql/address_standardizer-3.so && \
+	# ln -s /usr/lib/x86_64-linux-gnu/postgresql/address_standardizer.so /usr/lib/x86_64-linux-gnu/postgresql/address_standardizer-3.so && \
 	# Cleanup
 	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
