@@ -91,7 +91,7 @@ jobs:
         echo "PG_IMAGE=$(echo "${BUILD_METADATA}" | jq -r '.["minimal"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
 
   call-reusable-e2e:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs:
       - build-pg
     uses: ./.github/workflows/reusable-e2e.yml
