@@ -41,7 +41,7 @@ permissions: {}
 jobs:
   e2e-local:
     name: Run E2E on local executors
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04' }}
     permissions:
       packages: write
     env:
