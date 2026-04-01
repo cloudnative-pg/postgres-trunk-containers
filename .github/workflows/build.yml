@@ -25,7 +25,7 @@ permissions: read-all
 jobs:
   build-pg:
     name: Build generic PostgreSQL image from sources
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04' }}
     permissions:
       contents: read
       packages: write
