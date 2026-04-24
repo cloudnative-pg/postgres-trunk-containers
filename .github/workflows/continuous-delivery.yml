@@ -1,5 +1,6 @@
 name: continuous-delivery
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       cnpg_branch:
@@ -80,10 +81,11 @@ jobs:
         revision: ${{ github.sha }}
         pgMajor: ${{ env.PG_MAJOR }}
       with:
-        push: true
+        push: ${{ github.event_name != 'pull_request' }}
 
     # Get a list of the images that were built and pushed. We only care about a single tag for each image.
     - name: Generated images
+      if: github.event_name != 'pull_request'
       id: images
       env:
         BUILD_METADATA: ${{ steps.build.outputs.metadata }}
