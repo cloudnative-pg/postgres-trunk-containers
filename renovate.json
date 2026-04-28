@@ -1,7 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "docker:pinDigests",
+    ":gitSignOff",
+    ":automergeMinor",
+    ":automergeDigest"
   ],
   "prConcurrentLimit": 5,
   "semanticCommits": "enabled",
