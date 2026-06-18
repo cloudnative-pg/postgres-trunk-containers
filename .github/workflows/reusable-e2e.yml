@@ -90,7 +90,7 @@ jobs:
           echo "-----------------------------------------------------"
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: cloudnative-pg/cloudnative-pg
           ref: ${{ inputs.cnpg_branch }}
