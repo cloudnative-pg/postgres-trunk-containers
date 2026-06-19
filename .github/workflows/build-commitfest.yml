@@ -28,7 +28,7 @@ jobs:
       images: ${{ env.IMAGES }}
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Set env variables from defaults.json
       run: |
