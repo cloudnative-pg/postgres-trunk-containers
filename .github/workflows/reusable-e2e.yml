@@ -138,11 +138,12 @@ jobs:
 
       - name: Setting up defaults
         run: |
-          # Exlude backup/recovery and image-volume tests
+          # Exclude backup/recovery and image-volume tests, but keep backup-restore
+          # tests that are also labeled plugin-barman-cloud
           if [ -z "${FEATURE_TYPE}" ]; then
-            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions)" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!((backup-restore && !plugin-barman-cloud) || image-volume-extensions)" >> $GITHUB_ENV
           else
-            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions) && ${FEATURE_TYPE}" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!((backup-restore && !plugin-barman-cloud) || image-volume-extensions) && ${FEATURE_TYPE}" >> $GITHUB_ENV
           fi
 
       - name: Run Kind End-to-End tests
