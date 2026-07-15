@@ -12,6 +12,9 @@ on:
       feature_type:
         description: 'E2E feature type filter. See https://github.com/cloudnative-pg/cloudnative-pg/blob/main/contribute/e2e_testing_environment/README.md#using-feature-type-test-selectionfilter'
         required: false
+      barman_plugin:
+        description: 'plugin-barman-cloud version to install: release (default), main, or a pinned version like v0.12.0'
+        required: false
   schedule:
   - cron:  '0 1 * * *'
 
@@ -35,6 +38,7 @@ jobs:
       cnpg_branch: ${{ env.CNPG_BRANCH }}
       test_depth: ${{ env.TEST_DEPTH }}
       feature_type: ${{ env.FEATURE_TYPE }}
+      barman_plugin: ${{ env.BARMAN_PLUGIN }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
@@ -51,6 +55,7 @@ jobs:
         INPUT_CNPG_BRANCH: ${{ github.event.inputs.cnpg_branch }}
         INPUT_TEST_DEPTH: ${{ github.event.inputs.test_depth }}
         INPUT_FEATURE_TYPE: ${{ github.event.inputs.feature_type }}
+        INPUT_BARMAN_PLUGIN: ${{ github.event.inputs.barman_plugin }}
       run: |
         if [[ -n "${INPUT_CNPG_BRANCH}" ]]; then
           echo "CNPG_BRANCH=${INPUT_CNPG_BRANCH}" >> $GITHUB_ENV
@@ -60,6 +65,9 @@ jobs:
         fi
         if [[ -n "${INPUT_FEATURE_TYPE}" ]]; then
           echo "FEATURE_TYPE=${INPUT_FEATURE_TYPE}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${INPUT_BARMAN_PLUGIN}" ]]; then
+          echo "BARMAN_PLUGIN=${INPUT_BARMAN_PLUGIN}" >> $GITHUB_ENV
         fi
 
     - name: Log in to the GitHub Container registry
@@ -105,3 +113,4 @@ jobs:
       cnpg_branch: ${{ needs.build-pg.outputs.cnpg_branch }}
       test_depth: ${{ needs.build-pg.outputs.test_depth }}
       feature_type: ${{ needs.build-pg.outputs.feature_type }}
+      barman_plugin: ${{ needs.build-pg.outputs.barman_plugin }}

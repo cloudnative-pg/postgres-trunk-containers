@@ -3,5 +3,6 @@
   "PG_MAJOR": 19,
   "CNPG_BRANCH": "main",
   "TEST_DEPTH": 4,
-  "FEATURE_TYPE": ""
+  "FEATURE_TYPE": "",
+  "BARMAN_PLUGIN": "main"
 }
