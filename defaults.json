@@ -4,5 +4,5 @@
   "CNPG_BRANCH": "main",
   "TEST_DEPTH": 4,
   "FEATURE_TYPE": "",
-  "BARMAN_PLUGIN": "main"
+  "BARMAN_PLUGIN": "release"
 }
