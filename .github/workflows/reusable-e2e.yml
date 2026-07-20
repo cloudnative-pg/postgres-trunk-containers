@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: ""
+      barman_plugin:
+        description: 'plugin-barman-cloud version to install: release (default), main, or a pinned version like v0.12.0'
+        required: false
+        type: string
+        default: 'release'
 
 # set up environment variables to be used across all the jobs
 env:
@@ -47,6 +52,7 @@ jobs:
     env:
       TEST_DEPTH: ${{ inputs.test_depth }}
       FEATURE_TYPE: ${{ inputs.feature_type }}
+      BARMAN_PLUGIN_VERSION: ${{ inputs.barman_plugin }}
 
       POSTGRES_VERSION: ${{ inputs.major_version }}
       POSTGRES_IMG: ${{ inputs.postgres_img }}
@@ -58,7 +64,7 @@ jobs:
       DOCKER_USERNAME: ${{ github.actor }}
       DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
-      ID: "local"
+      ID: "kind"
       TEST_UPGRADE_TO_V1: false
       DEBUG: "true"
       BUILD_IMAGE: "true"
@@ -67,7 +73,7 @@ jobs:
       E2E_DEFAULT_VOLUMESNAPSHOT_CLASS: csi-hostpath-snapclass
       LOG_DIR: ${{ github.workspace }}/kind-logs/
       DOCKER_REGISTRY_MIRROR: https://mirror.gcr.io
-      TEST_CLOUD_VENDOR: "local"
+      TEST_CLOUD_VENDOR: "kind"
     steps:
       - name: Cleanup Disk
         uses: jlumbroso/free-disk-space@main
@@ -138,11 +144,12 @@ jobs:
 
       - name: Setting up defaults
         run: |
-          # Exlude backup/recovery and image-volume tests
+          # Exclude backup/recovery and image-volume tests, but keep backup-restore
+          # tests that are also labeled plugin-barman-cloud
           if [ -z "${FEATURE_TYPE}" ]; then
-            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions)" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!((backup-restore && !plugin-barman-cloud) || image-volume-extensions)" >> $GITHUB_ENV
           else
-            echo "FEATURE_TYPE=!(backup-restore || image-volume-extensions) && ${FEATURE_TYPE}" >> $GITHUB_ENV
+            echo "FEATURE_TYPE=!((backup-restore && !plugin-barman-cloud) || image-volume-extensions) && ${FEATURE_TYPE}" >> $GITHUB_ENV
           fi
 
       - name: Run Kind End-to-End tests
@@ -162,9 +169,11 @@ jobs:
         if: (always() && !cancelled())
         env:
           RUNNER: "${{ env.ID }}"
-          POSTGRES_VERSION: "${{ env.PG_MAJOR }}"
+          POSTGRES_VERSION: "${{ inputs.major_version }}"
+          POSTGRES_KIND: "${{ env.POSTGRES_KIND }}"
+          K8S_VERSION: "${{ env.K8S_VERSION }}"
           RUN_ID: "${{ github.run_id }}"
-          MATRIX: "${{ env.ID }}-${{ env.POSTGRES_KIND }}-${{ env.PG_MAJOR }}"
+          MATRIX: "${{ env.ID }}-${{ env.K8S_VERSION}}-${{ env.POSTGRES_KIND }}-${{ inputs.major_version }}"
           REPOSITORY: "${{ github.repository }}"
           BRANCH_NAME: "${GITHUB_REF#refs/heads/}"
           GIT_REF: "${{ github.ref_name }}"
