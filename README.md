@@ -52,6 +52,26 @@ docker buildx bake --push
 By default, the build process assumes a registry server runs locally at `localhost:5000`.
 You can either [deploy a disposable registry at localhost:5000](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#local-testing), or [specify a different registry](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#the-distribution-registry).
 
+## Multi-architecture support
+
+Images are built for both `linux/amd64` and `linux/arm64`.
+
+Since compiling PostgreSQL from source is CPU-bound, CI builds each
+architecture natively — on an amd64 and, respectively, an arm64 runner — and
+then publishes a single multi-arch manifest by merging the two per-arch
+images with `docker buildx imagetools create`. It deliberately avoids
+cross-building `linux/arm64` through QEMU emulation on an amd64 runner, which
+would multiply the compilation time. See
+[`reusable-build.yml`](.github/workflows/reusable-build.yml) for details.
+
+Building locally with `docker buildx bake` still targets both platforms by
+default (see the `platforms` variable in `docker-bake.hcl`). Building
+`linux/arm64` on an amd64 host (or vice versa) this way relies on QEMU
+emulation, which the [prerequisites](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#prerequisites)
+above set up; it is fine for a one-off local build, just slow for a full
+PostgreSQL compile. To build only for your host architecture instead, add
+`--set '*.platform=linux/amd64'` (or `linux/arm64`) to the command.
+
 ## License and Copyright
 
 This software is licensed under the [Apache License 2.0](LICENSE).
