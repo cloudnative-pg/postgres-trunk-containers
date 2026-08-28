@@ -1,0 +1,181 @@
+name: Reusable Multi-Arch PostgreSQL Build
+
+# Builds the minimal/standard/postgis images for linux/amd64 and linux/arm64
+# natively (one arch per job, no QEMU emulation) and publishes a multi-arch
+# manifest list for each requested tag by merging the two per-arch images
+# with `docker buildx imagetools create`.
+#
+# Compiling PostgreSQL from source is CPU-bound, so cross-building linux/arm64
+# under QEMU emulation on an amd64 runner would be dramatically slower than a
+# native build. This workflow instead relies on GitHub-hosted native arm64
+# runners (`ubuntu-24.04-arm`) for the arm64 leg.
+
+on:
+  workflow_call:
+    inputs:
+      pg_repo:
+        description: "PostgreSQL git repository to build from"
+        required: false
+        type: string
+        default: "https://git.postgresql.org/git/postgresql.git"
+      pg_branch:
+        description: "Branch in the PostgreSQL repository to build"
+        required: false
+        type: string
+        default: "master"
+      pg_major:
+        description: "PostgreSQL major version"
+        required: true
+        type: string
+      revision:
+        description: "Value used for the org.opencontainers.image.revision label/annotation"
+        required: true
+        type: string
+      minimal_tags:
+        description: "Comma-separated list of final (arch-less) tags for the minimal image"
+        required: true
+        type: string
+      standard_tags:
+        description: "Comma-separated list of final (arch-less) tags for the standard image"
+        required: true
+        type: string
+      postgis_tags:
+        description: "Comma-separated list of final (arch-less) tags for the postgis image"
+        required: true
+        type: string
+      push:
+        description: "Whether to push the built images. When false, each arch is only built (e.g. for PR validation) and no multi-arch manifest is published"
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      images:
+        description: "Newline-separated list of the final multi-arch images that were built and pushed (empty when push=false)"
+        value: ${{ jobs.merge.outputs.images }}
+
+defaults:
+  run:
+    # default failure handling for shell scripts in 'run' steps
+    shell: 'bash -Eeuo pipefail -x {0}'
+
+permissions: read-all
+
+jobs:
+  build:
+    name: Build (linux/${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
+    runs-on: >-
+      ${{
+        matrix.arch == 'arm64'
+        && 'ubuntu-24.04-arm'
+        || (github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04')
+      }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v7
+
+    - name: Log in to the GitHub Container registry
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    # Each per-arch image is pushed under the final tag with an "-$arch"
+    # suffix (e.g. ...:19-minimal-trixie-arm64), which the 'merge' job below
+    # then combines into the final multi-arch manifest. `docker buildx bake
+    # --set` doesn't split a comma-separated value for a list attribute (like
+    # `tags`) into multiple entries, so build one `--set target.tags=...` line
+    # per tag instead, and use the singular `platform` override key (the HCL
+    # attribute is named `platforms`, but that's not the override key name).
+    - name: Compute bake overrides
+      id: overrides
+      env:
+        ARCH: ${{ matrix.arch }}
+        PG_REPO: ${{ inputs.pg_repo }}
+        PG_BRANCH: ${{ inputs.pg_branch }}
+        MINIMAL_TAGS: ${{ inputs.minimal_tags }}
+        STANDARD_TAGS: ${{ inputs.standard_tags }}
+        POSTGIS_TAGS: ${{ inputs.postgis_tags }}
+      run: |
+        {
+          echo "set<<EOF"
+          echo "*.platform=linux/${ARCH}"
+          echo "*.args.PG_REPO=${PG_REPO}"
+          echo "*.args.PG_BRANCH=${PG_BRANCH}"
+          for target_tags in "minimal:${MINIMAL_TAGS}" "standard:${STANDARD_TAGS}" "postgis:${POSTGIS_TAGS}"; do
+            target="${target_tags%%:*}"
+            tags="${target_tags#*:}"
+            IFS=',' read -ra tag_list <<< "$tags"
+            for tag in "${tag_list[@]}"; do
+              echo "${target}.tags=${tag}-${ARCH}"
+            done
+          done
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Build (and push) single-arch images
+      uses: docker/bake-action@v7
+      env:
+        environment: production
+        revision: ${{ inputs.revision }}
+        pgMajor: ${{ inputs.pg_major }}
+      with:
+        set: ${{ steps.overrides.outputs.set }}
+        push: ${{ inputs.push }}
+
+  merge:
+    name: Publish multi-arch manifests
+    if: inputs.push
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      images: ${{ steps.merge.outputs.images }}
+    steps:
+    - name: Log in to the GitHub Container registry
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Create and push multi-arch manifests
+      id: merge
+      env:
+        MINIMAL_TAGS: ${{ inputs.minimal_tags }}
+        STANDARD_TAGS: ${{ inputs.standard_tags }}
+        POSTGIS_TAGS: ${{ inputs.postgis_tags }}
+      run: |
+        images=()
+        for tags in "$MINIMAL_TAGS" "$STANDARD_TAGS" "$POSTGIS_TAGS"; do
+          IFS=',' read -ra tag_list <<< "$tags"
+          for tag in "${tag_list[@]}"; do
+            docker buildx imagetools create \
+              --tag "$tag" \
+              "$tag-amd64" \
+              "$tag-arm64"
+            images+=("$tag")
+          done
+        done
+        {
+          echo 'images<<EOF'
+          printf '%s\n' "${images[@]}"
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"

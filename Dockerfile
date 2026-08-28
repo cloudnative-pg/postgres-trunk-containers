@@ -58,7 +58,6 @@ RUN apt-get update && \
 	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
 	export CLANG=clang-19 && \
 	./configure \
-		--build=x86_64-linux-gnu \
 		--prefix=/usr \
 		--enable-debug \
 		--enable-cassert \
@@ -99,7 +98,7 @@ RUN apt-get update && \
 		--docdir=/usr/share/doc/postgresql-doc-$PG_MAJOR \
 		--datadir=/usr/share/postgresql/$PG_MAJOR \
 		--bindir=/usr/lib/postgresql/$PG_MAJOR/bin \
-		--libdir=/usr/lib/x86_64-linux-gnu/ \
+		--libdir=/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/ \
 		CFLAGS="-g -Og -fstack-protector-strong -Wformat -Werror=format-security -fno-omit-frame-pointer" \
 		LDFLAGS="-Wl,-z,relro -Wl,-z,now" \
 		CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" \
