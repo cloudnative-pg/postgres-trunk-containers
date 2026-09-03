@@ -32,8 +32,8 @@ on:
 
 # set up environment variables to be used across all the jobs
 env:
-  KIND_VERSION: "v0.32.0"
-  K8S_VERSION: "v1.36.1"
+  KIND_VERSION: "v0.33.0"
+  K8S_VERSION: "v1.37.0"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
 
 defaults:
@@ -117,7 +117,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Install Kind
-        uses: helm/kind-action@v1.14.0
+        uses: helm/kind-action@v1.15.0
         with:
           install_only: true
           version: ${{ env.KIND_VERSION }}
