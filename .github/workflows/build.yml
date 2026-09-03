@@ -23,15 +23,14 @@ defaults:
 permissions: read-all
 
 jobs:
-  build-pg:
-    name: Build generic PostgreSQL image from sources
-    runs-on: ${{ github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04' }}
-    permissions:
-      contents: read
-      packages: write
+  prepare:
+    name: Evaluate inputs
+    runs-on: ubuntu-24.04
     outputs:
-      images: ${{ env.IMAGES }}
       pg_major: ${{ env.PG_MAJOR }}
+      minimal_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ github.run_number }}
+      standard_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ github.run_number }}
+      postgis_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ github.run_number }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
@@ -51,55 +50,35 @@ jobs:
           echo "PG_MAJOR=${INPUT_MAJOR_VERSION}" >> $GITHUB_ENV
         fi
 
-    - name: Log in to the GitHub Container registry
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set registry
+      run: echo "registry=ghcr.io/${{ github.repository_owner }}" >> $GITHUB_ENV
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
-
-    - name: Build and push
-      uses: docker/bake-action@v7
-      id: build
-      env:
-        environment: production
-        registry: ghcr.io/${{ github.repository_owner }}
-        revision: ${{ github.sha }}
-        pgMajor: ${{ env.PG_MAJOR }}
-      with:
-        set: |
-          *.args.PG_REPO=${{ github.event.inputs.pg_repo }}
-          *.args.PG_BRANCH=${{ github.event.inputs.pg_branch }}
-          minimal.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ github.run_number }}
-          standard.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ github.run_number }}
-          postgis.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ github.run_number }}
-        push: true
-
-    # Get a list of the images that were built and pushed.
-    - name: Generated images
-      id: images
-      env:
-        BUILD_METADATA: ${{ steps.build.outputs.metadata }}
-      run: |
-        IMAGES="$(echo "${BUILD_METADATA}" | jq -r '.[]."image.name"')"
-        {
-          echo 'IMAGES<<EOF'
-          echo "${IMAGES}"
-          echo EOF
-        } >> $GITHUB_ENV
+  build-pg:
+    name: Build generic PostgreSQL image from sources
+    needs: prepare
+    uses: ./.github/workflows/reusable-build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      pg_repo: ${{ github.event.inputs.pg_repo }}
+      pg_branch: ${{ github.event.inputs.pg_branch }}
+      pg_major: ${{ needs.prepare.outputs.pg_major }}
+      revision: ${{ github.sha }}
+      minimal_tags: ${{ needs.prepare.outputs.minimal_tag }}
+      standard_tags: ${{ needs.prepare.outputs.standard_tag }}
+      postgis_tags: ${{ needs.prepare.outputs.postgis_tag }}
 
   generate-summary:
     name: PostgreSQL Image Build summary
     runs-on: ubuntu-24.04
     needs:
+      - prepare
       - build-pg
     steps:
       - name: Output summary
         env:
-          BUILD_PG_MAJOR: ${{ needs.build-pg.outputs.pg_major }}
+          BUILD_PG_MAJOR: ${{ needs.prepare.outputs.pg_major }}
           BUILD_PG_IMAGES: ${{ needs.build-pg.outputs.images }}
         run: |
           pg_major="${BUILD_PG_MAJOR}"

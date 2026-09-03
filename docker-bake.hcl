@@ -42,6 +42,10 @@ variable "pgMajor" {
   default = "20"
 }
 
+variable "platforms" {
+  default = ["linux/amd64", "linux/arm64"]
+}
+
 fullname = ( environment == "testing") ? "${registry}/postgresql-trunk-testing" : "${registry}/postgresql-trunk"
 now = timestamp()
 title = "PostgreSQL Trunk Containers"
@@ -60,9 +64,7 @@ target "default" {
     base = ["debian:trixie-slim"]
   }
 
-  platforms = [
-    "linux/amd64"
-  ]
+  platforms = platforms
 
   dockerfile = "Dockerfile"
   name = "${tgt}"

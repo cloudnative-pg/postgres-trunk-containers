@@ -26,19 +26,18 @@ defaults:
 permissions: read-all
 
 jobs:
-  build-pg:
-    name: Build the Trunk of PostgreSQL
-    runs-on: ${{ github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04' }}
-    permissions:
-      contents: read
-      packages: write
+  prepare:
+    name: Evaluate inputs
+    runs-on: ubuntu-24.04
     outputs:
-      pg_image: ${{ env.PG_IMAGE }}
       pg_major: ${{ env.PG_MAJOR }}
       cnpg_branch: ${{ env.CNPG_BRANCH }}
       test_depth: ${{ env.TEST_DEPTH }}
       feature_type: ${{ env.FEATURE_TYPE }}
       barman_plugin: ${{ env.BARMAN_PLUGIN }}
+      minimal_tags: ${{ env.MINIMAL_TAGS }}
+      standard_tags: ${{ env.STANDARD_TAGS }}
+      postgis_tags: ${{ env.POSTGIS_TAGS }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
@@ -70,47 +69,61 @@ jobs:
           echo "BARMAN_PLUGIN=${INPUT_BARMAN_PLUGIN}" >> $GITHUB_ENV
         fi
 
-    - name: Log in to the GitHub Container registry
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
-
-    - name: Build and push
-      uses: docker/bake-action@v7
-      id: build
-      env:
-        environment: production
-        registry: ghcr.io/${{ github.repository_owner }}
-        revision: ${{ github.sha }}
-        pgMajor: ${{ env.PG_MAJOR }}
-      with:
-        push: ${{ github.event_name != 'pull_request' }}
-
-    # Get a list of the images that were built and pushed. We only care about a single tag for each image.
-    - name: Generated images
-      if: github.event_name != 'pull_request'
-      id: images
-      env:
-        BUILD_METADATA: ${{ steps.build.outputs.metadata }}
+    # Compute the final (arch-less) tags for each image's flavor.
+    # Mirrors the naming scheme baked into docker-bake.hcl's default target.
+    - name: Compute image tags
       run: |
-        echo "PG_IMAGE=$(echo "${BUILD_METADATA}" | jq -r '.["minimal"].["image.name"]' | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_ENV
+        registry="ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
+        timestamp="$(date -u +%Y%m%d%H%M)"
+        for tgt in MINIMAL STANDARD POSTGIS; do
+          lower="${tgt,,}"
+          echo "${tgt}_TAGS=${registry}:${PG_MAJOR}-${lower}-${DISTRO},${registry}:${PG_MAJOR}-${timestamp}-${lower}-${DISTRO}" >> $GITHUB_ENV
+        done
+
+  build-pg:
+    name: Build the Trunk of PostgreSQL
+    needs: prepare
+    uses: ./.github/workflows/reusable-build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      pg_major: ${{ needs.prepare.outputs.pg_major }}
+      revision: ${{ github.sha }}
+      minimal_tags: ${{ needs.prepare.outputs.minimal_tags }}
+      standard_tags: ${{ needs.prepare.outputs.standard_tags }}
+      postgis_tags: ${{ needs.prepare.outputs.postgis_tags }}
+      # On pull_request runs, only build each arch to validate the Dockerfile
+      # compiles — don't push anything or publish a multi-arch manifest.
+      push: ${{ github.event_name != 'pull_request' }}
+
+  select-pg-image:
+    name: Select the image built for E2E
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: build-pg
+    runs-on: ubuntu-24.04
+    outputs:
+      pg_image: ${{ steps.select.outputs.pg_image }}
+    steps:
+      - name: Pick the timestamped minimal image
+        id: select
+        env:
+          BUILD_PG_IMAGES: ${{ needs.build-pg.outputs.images }}
+        run: |
+          echo "pg_image=$(echo "${BUILD_PG_IMAGES}" | grep minimal | grep -oP '[^,]*\d{12}[^,]*')" >> $GITHUB_OUTPUT
 
   call-reusable-e2e:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs:
-      - build-pg
+      - prepare
+      - select-pg-image
     uses: ./.github/workflows/reusable-e2e.yml
     permissions:
       packages: write
     with:
-      postgres_img: ${{ needs.build-pg.outputs.pg_image }}
-      major_version: ${{ needs.build-pg.outputs.pg_major }}
-      cnpg_branch: ${{ needs.build-pg.outputs.cnpg_branch }}
-      test_depth: ${{ needs.build-pg.outputs.test_depth }}
-      feature_type: ${{ needs.build-pg.outputs.feature_type }}
-      barman_plugin: ${{ needs.build-pg.outputs.barman_plugin }}
+      postgres_img: ${{ needs.select-pg-image.outputs.pg_image }}
+      major_version: ${{ needs.prepare.outputs.pg_major }}
+      cnpg_branch: ${{ needs.prepare.outputs.cnpg_branch }}
+      test_depth: ${{ needs.prepare.outputs.test_depth }}
+      feature_type: ${{ needs.prepare.outputs.feature_type }}
+      barman_plugin: ${{ needs.prepare.outputs.barman_plugin }}
