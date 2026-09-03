@@ -69,20 +69,15 @@ jobs:
           echo "BARMAN_PLUGIN=${INPUT_BARMAN_PLUGIN}" >> $GITHUB_ENV
         fi
 
-    # Compute the final (arch-less) tags up front, once, so that both the
-    # amd64 and arm64 legs of the build (native runners, no QEMU emulation —
-    # see reusable-build.yml) push under the same tags for the 'merge' job to
-    # combine into multi-arch manifests. Mirrors the naming scheme baked into
-    # docker-bake.hcl's default target (distro comes from its `base` matrix
-    # entry, currently pinned to debian:trixie-slim).
+    # Compute the final (arch-less) tags for each image's flavor.
+    # Mirrors the naming scheme baked into docker-bake.hcl's default target.
     - name: Compute image tags
       run: |
         registry="ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
-        distro="trixie"
         timestamp="$(date -u +%Y%m%d%H%M)"
         for tgt in MINIMAL STANDARD POSTGIS; do
           lower="${tgt,,}"
-          echo "${tgt}_TAGS=${registry}:${PG_MAJOR}-${lower}-${distro},${registry}:${PG_MAJOR}-${timestamp}-${lower}-${distro}" >> $GITHUB_ENV
+          echo "${tgt}_TAGS=${registry}:${PG_MAJOR}-${lower}-${DISTRO},${registry}:${PG_MAJOR}-${timestamp}-${lower}-${DISTRO}" >> $GITHUB_ENV
         done
 
   build-pg:

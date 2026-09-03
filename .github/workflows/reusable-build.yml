@@ -1,14 +1,9 @@
-name: Reusable Multi-Arch PostgreSQL Build
-
 # Builds the minimal/standard/postgis images for linux/amd64 and linux/arm64
 # natively (one arch per job, no QEMU emulation) and publishes a multi-arch
 # manifest list for each requested tag by merging the two per-arch images
 # with `docker buildx imagetools create`.
 #
-# Compiling PostgreSQL from source is CPU-bound, so cross-building linux/arm64
-# under QEMU emulation on an amd64 runner would be dramatically slower than a
-# native build. This workflow instead relies on GitHub-hosted native arm64
-# runners (`ubuntu-24.04-arm`) for the arm64 leg.
+name: Reusable Multi-Arch PostgreSQL Build
 
 on:
   workflow_call:
@@ -71,8 +66,7 @@ jobs:
           - arm64
     runs-on: >-
       ${{
-        matrix.arch == 'arm64'
-        && 'ubuntu-24.04-arm'
+        matrix.arch == 'arm64' && 'ubuntu-24.04-arm'
         || (github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-24.04')
       }}
     permissions:
@@ -92,13 +86,8 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
-    # Each per-arch image is pushed under the final tag with an "-$arch"
-    # suffix (e.g. ...:19-minimal-trixie-arm64), which the 'merge' job below
-    # then combines into the final multi-arch manifest. `docker buildx bake
-    # --set` doesn't split a comma-separated value for a list attribute (like
-    # `tags`) into multiple entries, so build one `--set target.tags=...` line
-    # per tag instead, and use the singular `platform` override key (the HCL
-    # attribute is named `platforms`, but that's not the override key name).
+    # For each image flavor, each tag is appended with
+    # an "-$arch" suffix (e.g. ...:19-minimal-trixie-arm64).
     - name: Compute bake overrides
       id: overrides
       env:

@@ -42,11 +42,6 @@ variable "pgMajor" {
   default = "19"
 }
 
-// Target platforms for the images. CI builds a single platform per job
-// (overriding this via --set) on native amd64/arm64 runners and later
-// merges the resulting images into one multi-arch manifest list — see
-// .github/workflows/reusable-build.yml. When building locally with this
-// default, cross-arch platforms are emulated through QEMU (see README.md).
 variable "platforms" {
   default = ["linux/amd64", "linux/arm64"]
 }
