@@ -39,7 +39,7 @@ variable "revision" {
 }
 
 variable "pgMajor" {
-  default = "19"
+  default = "20"
 }
 
 variable "platforms" {
