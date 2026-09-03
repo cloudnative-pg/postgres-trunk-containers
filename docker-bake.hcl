@@ -39,7 +39,7 @@ variable "revision" {
 }
 
 variable "pgMajor" {
-  default = "19"
+  default = "20"
 }
 
 fullname = ( environment == "testing") ? "${registry}/postgresql-trunk-testing" : "${registry}/postgresql-trunk"
