@@ -23,7 +23,7 @@ FROM $BASE AS minimal
 
 ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
-ARG PG_MAJOR=19
+ARG PG_MAJOR=20
 
 COPY build-deps.txt /
 

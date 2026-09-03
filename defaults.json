@@ -1,6 +1,6 @@
 {
-  "PG_IMAGE": "ghcr.io/cloudnative-pg/postgresql-trunk:19-minimal-trixie",
-  "PG_MAJOR": 19,
+  "PG_IMAGE": "ghcr.io/cloudnative-pg/postgresql-trunk:20-minimal-trixie",
+  "PG_MAJOR": 20,
   "CNPG_BRANCH": "main",
   "TEST_DEPTH": 4,
   "FEATURE_TYPE": "",
