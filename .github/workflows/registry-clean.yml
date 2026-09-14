@@ -1,0 +1,107 @@
+# This workflow runs daily to clean up images older than the cut-off
+# period specified in each `snok/container-retention-policy`.
+#
+# Both testing and production images are being cleaned up, with separate
+# retention policies.
+#
+# For `postgresql-trunk-testing` images:
+# - Delete everything that's older than 1 week
+#
+# For `postgresql-trunk` images:
+# - Delete all rolling-upgrade-e2e tags older than 1 week (these are retags required only by E2Es)
+# - Delete `-minimal` images older than 1 week, keeping the most recent tag
+# - Delete `-standard` images older than 1 week, keeping the most recent tag
+# - Delete `-postgis` images older than 1 week, keeping the most recent tag
+# - Delete untagged/orphaned layers older than 1 week
+#
+# Tags produced by build.yml / build-commitfest.yml are never deleted.
+name: clean-testing-package
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions: {}
+
+env:
+  IMAGE_NAME_TESTING: "postgresql-trunk-testing"
+  IMAGE_NAME: "postgresql-trunk"
+
+jobs:
+  clean-ghcr:
+    name: delete old testing container images
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set DISTRO from defaults.json
+        run: echo "DISTRO=$(jq -r '.DISTRO' defaults.json)" >> "$GITHUB_ENV"
+
+      - name: Delete '-testing' operand images in ${{ env.IMAGE_NAME_TESTING }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME_TESTING }}
+          cut-off: 1w
+          keep-n-most-recent: 1
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete old rolling-upgrade-e2e images in ${{ env.IMAGE_NAME }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME }}
+          image-tags: "*rolling-upgrade-e2e*"
+          tag-selection: tagged
+          cut-off: 1w
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep only the latest postgis image per distro in ${{ env.IMAGE_NAME }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME }}
+          image-tags: "*-postgis-${{ env.DISTRO }}"
+          tag-selection: tagged
+          cut-off: 1w
+          keep-n-most-recent: 1
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep only the latest standard image per distro in ${{ env.IMAGE_NAME }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME }}
+          image-tags: "*-standard-${{ env.DISTRO }}"
+          tag-selection: tagged
+          cut-off: 1w
+          keep-n-most-recent: 1
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep only the latest minimal image per distro in ${{ env.IMAGE_NAME }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME }}
+          image-tags: "*-minimal-${{ env.DISTRO }}"
+          tag-selection: tagged
+          cut-off: 1w
+          keep-n-most-recent: 1
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Runs last and only considers untagged versions (dangling SBOM/provenance
+      # attestation manifests, orphaned layers), independently of the tag rules
+      # above -- image-tags does not apply to untagged versions.
+      - name: Delete dangling untagged images in ${{ env.IMAGE_NAME }}
+        uses: snok/container-retention-policy@d3bdcf5ce9b05f685154e4a16c39233b245e3d53 # v3.1.0
+        with:
+          image-names: ${{ env.IMAGE_NAME }}
+          tag-selection: untagged
+          cut-off: 1w
+          account: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
