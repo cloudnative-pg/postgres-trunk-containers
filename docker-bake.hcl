@@ -55,14 +55,75 @@ url = "https://github.com/cloudnative-pg/postgres-trunk-containers"
 
 target "default" {
   matrix = {
-    // PostGIS is temporarily excluded from the default build: it
-    // periodically fails against PostgreSQL trunk and, being built in the
-    // same bake invocation, takes minimal/standard and E2E down with it.
-    // See https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158
     tgt = [
       "minimal",
       "standard"
     ]
+    pgMajor = ["${pgMajor}"]
+    base = ["debian:trixie-slim"]
+  }
+
+  platforms = platforms
+
+  dockerfile = "Dockerfile"
+  name = "${tgt}"
+  tags = [
+    "${fullname}:${pgMajor}-${tgt}-${distroVersion(base)}",
+    "${fullname}:${pgMajor}-${formatdate("YYYYMMDDhhmm", now)}-${tgt}-${distroVersion(base)}"
+  ]
+  context = "."
+  target = "${tgt}"
+  args = {
+    PG_MAJOR = "${pgMajor}"
+    BASE = "${base}"
+  }
+
+  output = [
+    "type=image,registry.insecure=${insecure}",
+  ]
+  attest = [
+    "type=provenance,mode=max",
+    "type=sbom"
+  ]
+  annotations = [
+    "index,manifest:org.opencontainers.image.created=${now}",
+    "index,manifest:org.opencontainers.image.url=${url}",
+    "index,manifest:org.opencontainers.image.source=${url}",
+    "index,manifest:org.opencontainers.image.version=${pgMajor}",
+    "index,manifest:org.opencontainers.image.revision=${revision}",
+    "index,manifest:org.opencontainers.image.vendor=${authors}",
+    "index,manifest:org.opencontainers.image.title=CloudNativePG PostgreSQL ${pgMajor} ${tgt}",
+    "index,manifest:org.opencontainers.image.description=A ${tgt} PostgreSQL ${pgMajor} container image",
+    "index,manifest:org.opencontainers.image.documentation=${url}",
+    "index,manifest:org.opencontainers.image.authors=${authors}",
+    "index,manifest:org.opencontainers.image.licenses=Apache-2.0",
+    "index,manifest:org.opencontainers.image.base.name=docker.io/library/${tag(base)}",
+  ]
+  labels = {
+    "org.opencontainers.image.created" = "${now}",
+    "org.opencontainers.image.url" = "${url}",
+    "org.opencontainers.image.source" = "${url}",
+    "org.opencontainers.image.version" = "${pgMajor}",
+    "org.opencontainers.image.revision" = "${revision}",
+    "org.opencontainers.image.vendor" = "${authors}",
+    "org.opencontainers.image.title" = "CloudNativePG PostgreSQL ${pgMajor} ${tgt}",
+    "org.opencontainers.image.description" = "A ${tgt} PostgreSQL ${pgMajor} container image",
+    "org.opencontainers.image.documentation" = "${url}",
+    "org.opencontainers.image.authors" = "${authors}",
+    "org.opencontainers.image.licenses" = "Apache-2.0"
+    "org.opencontainers.image.base.name" = "docker.io/library/debian:${tag(base)}"
+  }
+}
+
+// PostGIS periodically fails to build against PostgreSQL trunk. It's kept as
+// a standalone target outside the "default" group (a plain `docker buildx
+// bake` or `bake --push` only builds minimal/standard) so CI can build it as
+// an independent, best-effort step that doesn't block minimal/standard or
+// E2E when it breaks -- see reusable-build.yml and
+// https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158
+target "postgis" {
+  matrix = {
+    tgt = ["postgis"]
     pgMajor = ["${pgMajor}"]
     base = ["debian:trixie-slim"]
   }

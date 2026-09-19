@@ -26,6 +26,7 @@ jobs:
       pg_branch: ${{ env.BRANCH }}
       minimal_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ env.TAG }}
       standard_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ env.TAG }}
+      postgis_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ env.TAG }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
@@ -69,23 +70,45 @@ jobs:
       pg_branch: ${{ needs.prepare.outputs.pg_branch }}
       pg_major: ${{ needs.prepare.outputs.pg_major }}
       revision: ${{ github.sha }}
-      minimal_tags: ${{ needs.prepare.outputs.minimal_tag }}
-      standard_tags: ${{ needs.prepare.outputs.standard_tag }}
+      targets: |
+        minimal:${{ needs.prepare.outputs.minimal_tag }}
+        standard:${{ needs.prepare.outputs.standard_tag }}
+
+  # PostGIS periodically fails to build against PostgreSQL trunk. Kept as its
+  # own best-effort job so a break there doesn't fail this run or block the
+  # minimal/standard images above. See #158.
+  build-postgis:
+    name: Build PostGIS image for the patch (best-effort)
+    needs: prepare
+    uses: ./.github/workflows/reusable-build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      pg_repo: https://github.com/postgresql-cfbot/postgresql.git
+      pg_branch: ${{ needs.prepare.outputs.pg_branch }}
+      pg_major: ${{ needs.prepare.outputs.pg_major }}
+      revision: ${{ github.sha }}
+      targets: |
+        postgis:${{ needs.prepare.outputs.postgis_tag }}
+      best_effort: true
 
   generate-summary:
     name: Commitfest Image Build summary
     runs-on: ubuntu-24.04
     needs:
       - build-pg
+      - build-postgis
     steps:
       - name: Output summary
         env:
           INPUT_PATCH_ID: ${{ github.event.inputs.patch_id }}
           BUILD_PG_IMAGES: ${{ needs.build-pg.outputs.images }}
+          BUILD_POSTGIS_IMAGES: ${{ needs.build-postgis.outputs.images }}
         run: |
           commitFestPatchID="${INPUT_PATCH_ID}"
           commitFestURL="https://commitfest.postgresql.org/patch/${commitFestPatchID}"
-          images="${BUILD_PG_IMAGES}"
+          images="${BUILD_PG_IMAGES} ${BUILD_POSTGIS_IMAGES}"
           images_list="$(echo $images | tr ' ' '\n' | sed 's/^/https:\/\//')"
           minimalImage="$(echo $images | tr ' ' '\n' | grep minimal)"
 

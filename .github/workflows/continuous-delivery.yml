@@ -37,6 +37,7 @@ jobs:
       barman_plugin: ${{ env.BARMAN_PLUGIN }}
       minimal_tags: ${{ env.MINIMAL_TAGS }}
       standard_tags: ${{ env.STANDARD_TAGS }}
+      postgis_tags: ${{ env.POSTGIS_TAGS }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
@@ -74,7 +75,7 @@ jobs:
       run: |
         registry="ghcr.io/${{ github.repository_owner }}/postgresql-trunk"
         timestamp="$(date -u +%Y%m%d%H%M)"
-        for tgt in MINIMAL STANDARD; do
+        for tgt in MINIMAL STANDARD POSTGIS; do
           lower="${tgt,,}"
           echo "${tgt}_TAGS=${registry}:${PG_MAJOR}-${lower}-${DISTRO},${registry}:${PG_MAJOR}-${timestamp}-${lower}-${DISTRO}" >> $GITHUB_ENV
         done
@@ -89,11 +90,31 @@ jobs:
     with:
       pg_major: ${{ needs.prepare.outputs.pg_major }}
       revision: ${{ github.sha }}
-      minimal_tags: ${{ needs.prepare.outputs.minimal_tags }}
-      standard_tags: ${{ needs.prepare.outputs.standard_tags }}
+      targets: |
+        minimal:${{ needs.prepare.outputs.minimal_tags }}
+        standard:${{ needs.prepare.outputs.standard_tags }}
       # On pull_request runs, only build each arch to validate the Dockerfile
       # compiles — don't push anything or publish a multi-arch manifest.
       push: ${{ github.event_name != 'pull_request' }}
+
+  # PostGIS periodically fails to build against PostgreSQL trunk. It's built
+  # as its own job, independent from build-pg, so a break there (best_effort
+  # keeps it from failing this run) doesn't block minimal/standard image
+  # publishing or the E2E job below, which only depends on build-pg. See #158.
+  build-postgis:
+    name: Build the Trunk of PostgreSQL (PostGIS, best-effort)
+    needs: prepare
+    uses: ./.github/workflows/reusable-build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      pg_major: ${{ needs.prepare.outputs.pg_major }}
+      revision: ${{ github.sha }}
+      targets: |
+        postgis:${{ needs.prepare.outputs.postgis_tags }}
+      push: ${{ github.event_name != 'pull_request' }}
+      best_effort: true
 
   select-pg-image:
     name: Select the image built for E2E

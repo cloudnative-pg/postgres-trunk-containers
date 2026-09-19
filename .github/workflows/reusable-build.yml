@@ -1,17 +1,21 @@
 name: Reusable Multi-Arch PostgreSQL Build
 
-# Builds the minimal/standard images for linux/amd64 and linux/arm64
+# Builds one or more docker-bake.hcl targets for linux/amd64 and linux/arm64
 # natively (one arch per job, no QEMU emulation) and publishes a multi-arch
 # manifest list for each requested tag by merging the two per-arch images
 # with `docker buildx imagetools create`.
-#
-# PostGIS is currently excluded from the default docker-bake.hcl matrix
-# (see #158), so it isn't wired through here either.
 #
 # Compiling PostgreSQL from source is CPU-bound, so cross-building linux/arm64
 # under QEMU emulation on an amd64 runner would be dramatically slower than a
 # native build. This workflow instead relies on GitHub-hosted native arm64
 # runners (`ubuntu-24.04-arm`) for the arm64 leg.
+#
+# `best_effort: true` lets a caller build a target (e.g. postgis, which
+# periodically fails against PostgreSQL trunk -- see #158) without a failure
+# here failing the calling workflow run. This has to live inside this
+# workflow's own jobs, rather than as `continue-on-error` on the caller's job,
+# because GitHub Actions doesn't allow `continue-on-error` on a job that calls
+# a reusable workflow via `uses:`.
 
 on:
   workflow_call:
@@ -34,12 +38,8 @@ on:
         description: "Value used for the org.opencontainers.image.revision label/annotation"
         required: true
         type: string
-      minimal_tags:
-        description: "Comma-separated list of final (arch-less) tags for the minimal image"
-        required: true
-        type: string
-      standard_tags:
-        description: "Comma-separated list of final (arch-less) tags for the standard image"
+      targets:
+        description: "One '<docker-bake.hcl target>:<comma-separated final (arch-less) tags>' entry per line, e.g. 'minimal:tag1,tag2'"
         required: true
         type: string
       push:
@@ -47,6 +47,11 @@ on:
         required: false
         type: boolean
         default: true
+      best_effort:
+        description: "When true, a build/publish failure doesn't fail this workflow (and so doesn't fail a caller job that just `uses:` it -- GitHub Actions doesn't allow `continue-on-error` on a job that calls a reusable workflow). Use for targets that are allowed to be broken, like postgis (#158)."
+        required: false
+        type: boolean
+        default: false
     outputs:
       images:
         description: "Newline-separated list of the final multi-arch images that were built and pushed (empty when push=false)"
@@ -62,6 +67,7 @@ permissions: {}
 jobs:
   build:
     name: Build (linux/${{ matrix.arch }})
+    continue-on-error: ${{ inputs.best_effort }}
     strategy:
       fail-fast: false
       matrix:
@@ -90,30 +96,42 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
-    # For each image flavor, each tag is appended with
-    # an "-$arch" suffix (e.g. ...:19-minimal-trixie-arm64).
+    # For each image flavor, each tag is appended with an "-$arch" suffix
+    # (e.g. ...:19-minimal-trixie-arm64). `docker/bake-action` only builds the
+    # "default" group (docker-bake.hcl's `target "default"` matrix) unless
+    # told otherwise, so also collect the bake target names to build
+    # explicitly -- this is what lets a caller build just "postgis", which is
+    # intentionally kept out of the "default" group (see docker-bake.hcl).
     - name: Compute bake overrides
       id: overrides
       env:
         ARCH: ${{ matrix.arch }}
         PG_REPO: ${{ inputs.pg_repo }}
         PG_BRANCH: ${{ inputs.pg_branch }}
-        MINIMAL_TAGS: ${{ inputs.minimal_tags }}
-        STANDARD_TAGS: ${{ inputs.standard_tags }}
+        TARGETS: ${{ inputs.targets }}
       run: |
+        {
+          echo "targets<<EOF"
+          while IFS= read -r target_tags; do
+            [[ -z "$target_tags" ]] && continue
+            echo "${target_tags%%:*}"
+          done <<< "$TARGETS"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
         {
           echo "set<<EOF"
           echo "*.platform=linux/${ARCH}"
           echo "*.args.PG_REPO=${PG_REPO}"
           echo "*.args.PG_BRANCH=${PG_BRANCH}"
-          for target_tags in "minimal:${MINIMAL_TAGS}" "standard:${STANDARD_TAGS}"; do
+          while IFS= read -r target_tags; do
+            [[ -z "$target_tags" ]] && continue
             target="${target_tags%%:*}"
             tags="${target_tags#*:}"
             IFS=',' read -ra tag_list <<< "$tags"
             for tag in "${tag_list[@]}"; do
               echo "${target}.tags=${tag}-${ARCH}"
             done
-          done
+          done <<< "$TARGETS"
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
 
@@ -124,6 +142,7 @@ jobs:
         revision: ${{ inputs.revision }}
         pgMajor: ${{ inputs.pg_major }}
       with:
+        targets: ${{ steps.overrides.outputs.targets }}
         set: ${{ steps.overrides.outputs.set }}
         push: ${{ inputs.push }}
 
@@ -131,6 +150,7 @@ jobs:
     name: Publish multi-arch manifests
     if: inputs.push
     needs: build
+    continue-on-error: ${{ inputs.best_effort }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -151,11 +171,12 @@ jobs:
     - name: Create and push multi-arch manifests
       id: merge
       env:
-        MINIMAL_TAGS: ${{ inputs.minimal_tags }}
-        STANDARD_TAGS: ${{ inputs.standard_tags }}
+        TARGETS: ${{ inputs.targets }}
       run: |
         images=()
-        for tags in "$MINIMAL_TAGS" "$STANDARD_TAGS"; do
+        while IFS= read -r target_tags; do
+          [[ -z "$target_tags" ]] && continue
+          tags="${target_tags#*:}"
           IFS=',' read -ra tag_list <<< "$tags"
           for tag in "${tag_list[@]}"; do
             docker buildx imagetools create \
@@ -164,7 +185,7 @@ jobs:
               "$tag-arm64"
             images+=("$tag")
           done
-        done
+        done <<< "$TARGETS"
         {
           echo 'images<<EOF'
           printf '%s\n' "${images[@]}"
