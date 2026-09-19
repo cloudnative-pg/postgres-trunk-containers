@@ -20,7 +20,7 @@ permissions: read-all
 jobs:
   prepare:
     name: Evaluate inputs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       pg_major: ${{ env.PG_MAJOR }}
       pg_branch: ${{ env.BRANCH }}
@@ -74,7 +74,7 @@ jobs:
 
   generate-summary:
     name: Commitfest Image Build summary
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs:
       - build-pg
     steps:

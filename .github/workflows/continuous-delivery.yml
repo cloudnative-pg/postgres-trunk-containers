@@ -28,7 +28,7 @@ permissions: read-all
 jobs:
   prepare:
     name: Evaluate inputs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       pg_major: ${{ env.PG_MAJOR }}
       cnpg_branch: ${{ env.CNPG_BRANCH }}
@@ -99,7 +99,7 @@ jobs:
     name: Select the image built for E2E
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: build-pg
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       pg_image: ${{ steps.select.outputs.pg_image }}
     steps:
