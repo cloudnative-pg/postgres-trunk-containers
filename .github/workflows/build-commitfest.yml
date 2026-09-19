@@ -78,7 +78,6 @@ jobs:
           *.args.PG_BRANCH=${{ env.BRANCH }}
           minimal.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ env.TAG }}
           standard.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-standard-${{ env.TAG }}
-          postgis.tags=${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-postgis-${{ env.TAG }}
         push: true
 
     # Get a list of the images that were built and pushed.

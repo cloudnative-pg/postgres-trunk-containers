@@ -43,7 +43,7 @@ image.
 
 If you want to build these images locally, first make sure you meet the
 following [prerequisites](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#prerequisites).
-To build and push every flavor (minimal, standard, and PostGIS), run:
+To build and push every flavor (minimal and standard), run:
 
 ```
 docker buildx bake --push

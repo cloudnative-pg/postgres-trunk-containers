@@ -51,10 +51,13 @@ url = "https://github.com/cloudnative-pg/postgres-trunk-containers"
 
 target "default" {
   matrix = {
+    // PostGIS is temporarily excluded from the default build: it
+    // periodically fails against PostgreSQL trunk and, being built in the
+    // same bake invocation, takes minimal/standard and E2E down with it.
+    // See https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158
     tgt = [
       "minimal",
-      "standard",
-      "postgis"
+      "standard"
     ]
     pgMajor = ["${pgMajor}"]
     base = ["debian:trixie-slim"]
