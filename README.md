@@ -43,10 +43,19 @@ image.
 
 If you want to build these images locally, first make sure you meet the
 following [prerequisites](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#prerequisites).
-To build and push every flavor (minimal and standard), run:
+To build and push the minimal and standard flavors, run:
 
 ```
 docker buildx bake --push
+```
+
+PostGIS periodically fails to build against PostgreSQL trunk, so it's kept
+as a separate `postgis` target outside the default group above (see
+[#158](https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158)).
+Build and push it explicitly with:
+
+```
+docker buildx bake postgis --push
 ```
 
 By default, the build process assumes a registry server runs locally at `localhost:5000`.
