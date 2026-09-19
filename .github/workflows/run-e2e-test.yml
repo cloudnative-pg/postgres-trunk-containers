@@ -27,7 +27,7 @@ permissions: read-all
 jobs:
   evaluate-env:
     name: Evaluate input env variables
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       pg_image: "${{ env.PG_IMAGE }}"
       pg_major: ${{ env.PG_MAJOR }}

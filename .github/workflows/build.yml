@@ -25,7 +25,7 @@ permissions: read-all
 jobs:
   prepare:
     name: Evaluate inputs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       pg_major: ${{ env.PG_MAJOR }}
       minimal_tag: ${{ env.registry }}/postgresql-trunk:${{ env.PG_MAJOR }}-minimal-${{ github.run_number }}
@@ -69,7 +69,7 @@ jobs:
 
   generate-summary:
     name: PostgreSQL Image Build summary
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs:
       - prepare
       - build-pg
