@@ -8,7 +8,7 @@ name: Reusable Multi-Arch PostgreSQL Build
 # Compiling PostgreSQL from source is CPU-bound, so cross-building linux/arm64
 # under QEMU emulation on an amd64 runner would be dramatically slower than a
 # native build. This workflow instead relies on GitHub-hosted native arm64
-# runners (`ubuntu-24.04-arm`) for the arm64 leg.
+# runners (`ubuntu-26.04-arm`) for the arm64 leg.
 #
 # `best_effort: true` lets a caller build a target (e.g. postgis, which
 # periodically fails against PostgreSQL trunk -- see #158) without a failure
@@ -76,7 +76,7 @@ jobs:
           - arm64
     runs-on: >-
       ${{
-        matrix.arch == 'arm64' && 'ubuntu-24.04-arm'
+        matrix.arch == 'arm64' && 'ubuntu-26.04-arm'
         || (github.repository_owner == 'cloudnative-pg' && 'ubuntu-latest-16-cores' || 'ubuntu-26.04')
       }}
     permissions:
