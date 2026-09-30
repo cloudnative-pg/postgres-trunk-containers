@@ -146,6 +146,18 @@ jobs:
         set: ${{ steps.overrides.outputs.set }}
         push: ${{ inputs.push }}
 
+    # continue-on-error reports this job as successful even when it failed, so
+    # surface the failure explicitly (annotation + run summary).
+    - name: Flag ignored best-effort build failure
+      if: failure() && inputs.best_effort
+      env:
+        ARCH: ${{ matrix.arch }}
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        msg="Best-effort build failed for linux/${ARCH} (ignored, run stays green): ${TARGETS//$'\n'/ }"
+        echo "::warning title=Best-effort build failed::${msg}"
+        echo "### :warning: ${msg}" >> "$GITHUB_STEP_SUMMARY"
+
   merge:
     name: Publish multi-arch manifests
     if: inputs.push
@@ -191,3 +203,12 @@ jobs:
           printf '%s\n' "${images[@]}"
           echo 'EOF'
         } >> "$GITHUB_OUTPUT"
+
+    - name: Flag ignored best-effort publish failure
+      if: failure() && inputs.best_effort
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        msg="Best-effort multi-arch manifest publish failed (ignored, run stays green): ${TARGETS//$'\n'/ }"
+        echo "::warning title=Best-effort publish failed::${msg}"
+        echo "### :warning: ${msg}" >> "$GITHUB_STEP_SUMMARY"
