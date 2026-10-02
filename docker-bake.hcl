@@ -53,16 +53,23 @@ description = "PostgreSQL Trunk Containers for CloudNativePG operator"
 authors = "The CloudNativePG Contributors"
 url = "https://github.com/cloudnative-pg/postgres-trunk-containers"
 
-target "default" {
+// Targets built by a plain `docker buildx bake` (the "default" group).
+postgresTgt = ["minimal", "standard"]
+
+// PostGIS periodically fails to build against PostgreSQL trunk, so it's kept
+// out of the "default" group: CI builds it as an independent, best-effort
+// step (`docker buildx bake postgis`) so a break doesn't block
+// minimal/standard or E2E -- see reusable-build.yml and
+// https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158
+postgisTgt = ["postgis"]
+
+group "default" {
+  targets = postgresTgt
+}
+
+target "image" {
   matrix = {
-    // PostGIS is temporarily excluded from the default build: it
-    // periodically fails against PostgreSQL trunk and, being built in the
-    // same bake invocation, takes minimal/standard and E2E down with it.
-    // See https://github.com/cloudnative-pg/postgres-trunk-containers/issues/158
-    tgt = [
-      "minimal",
-      "standard"
-    ]
+    tgt = concat(postgresTgt, postgisTgt)
     pgMajor = ["${pgMajor}"]
     base = ["debian:trixie-slim"]
   }
