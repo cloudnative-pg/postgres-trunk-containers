@@ -55,6 +55,7 @@ url = "https://github.com/cloudnative-pg/postgres-trunk-containers"
 
 // Targets built by a plain `docker buildx bake` (the "default" group).
 postgresTgt = ["minimal", "standard"]
+
 // PostGIS periodically fails to build against PostgreSQL trunk, so it's kept
 // out of the "default" group: CI builds it as an independent, best-effort
 // step (`docker buildx bake postgis`) so a break doesn't block

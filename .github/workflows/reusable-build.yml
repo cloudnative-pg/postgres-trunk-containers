@@ -48,7 +48,7 @@ on:
         type: boolean
         default: true
       best_effort:
-        description: "When true, a build/publish failure doesn't fail this workflow (and so doesn't fail a caller job that just `uses:` it -- GitHub Actions doesn't allow `continue-on-error` on a job that calls a reusable workflow). Use for targets that are allowed to be broken, like postgis (#158)."
+        description: "When true, a build/publish failure doesn't fail this workflow, and so doesn't fail a caller job that just `uses:` it. Use for targets that are allowed to be broken."
         required: false
         type: boolean
         default: false
