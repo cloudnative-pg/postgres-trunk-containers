@@ -9,6 +9,18 @@
   ],
   "prConcurrentLimit": 5,
   "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "description": "No digest-pinned for these container images",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "kindest/node"
+      ],
+      "pinDigests": false
+    }
+  ],
   "customManagers": [
     {
       "customType": "regex",
