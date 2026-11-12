@@ -25,12 +25,12 @@ ARG PG_REPO=https://git.postgresql.org/git/postgresql.git
 ARG PG_BRANCH=master
 ARG PG_MAJOR=20
 
-COPY build-deps.txt /
-
 ENV PATH=/usr/lib/postgresql/$PG_MAJOR/bin:$PATH
 
 # Install runtime and build dependencies
-RUN apt-get update && \
+RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
+	--mount=type=bind,source=git-clone-retry.sh,target=/git-clone-retry.sh \
+	apt-get update && \
 	apt-get install -y --no-install-recommends -o Dpkg::::="--force-confdef" -o Dpkg::::="--force-confold" \
 		gnupg \
 		dirmngr \
@@ -53,7 +53,7 @@ RUN apt-get update && \
 	usermod -u 26 postgres && \
 	# Build PostgreSQL
 	mkdir -p /usr/src/postgresql && \
-	git clone -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
+	/git-clone-retry.sh -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
 	cd /usr/src/postgresql && \
 	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
 	export CLANG=clang-19 && \
@@ -125,9 +125,16 @@ USER 26
 FROM standard AS postgis
 USER root
 ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
-ARG POSTGIS_BRANCH=stable-3.6
+ARG POSTGIS_BRANCH=master
+# PostGIS 3.7 moved these extensions out of the main repository
+ARG ADDRESS_STANDARDIZER_REPO=https://github.com/postgis/address_standardizer.git
+ARG ADDRESS_STANDARDIZER_BRANCH=main
+ARG POSTGIS_TIGER_GEOCODER_REPO=https://git.osgeo.org/postgis/postgis_tiger_geocoder.git
+ARG POSTGIS_TIGER_GEOCODER_BRANCH=main
 
-RUN apt-get update && \
+RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
+	--mount=type=bind,source=git-clone-retry.sh,target=/git-clone-retry.sh \
+	apt-get update && \
 	apt-get install -y --no-install-recommends \
 		$(cat /build-deps.txt) \
 		# runtime deps
@@ -136,16 +143,24 @@ RUN apt-get update && \
 		libgdal36 \
 		libgeos-c1t64 \
 		libsfcgal2 \
+		libpcre2-8-0 \
 	&& \
+	export PG_CONFIG=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config && \
 	mkdir -p /usr/src/postgis && \
-	git clone -b "$POSTGIS_BRANCH" --single-branch "$POSTGIS_REPO" /usr/src/postgis && \
+	git clone -b "$POSTGIS_BRANCH" --single-branch --depth 1 "$POSTGIS_REPO" /usr/src/postgis && \
 	cd /usr/src/postgis && \
 	./autogen.sh && \
-	./configure --with-pgconfig=/usr/lib/postgresql/$PG_MAJOR/bin/pg_config --with-sfcgal && \
+	./configure --with-sfcgal && \
 	make -j$(nproc) && \
 	make install && \
+	git clone -b "$ADDRESS_STANDARDIZER_BRANCH" --single-branch --depth 1 "$ADDRESS_STANDARDIZER_REPO" /usr/src/address_standardizer && \
+	make -C /usr/src/address_standardizer -j$(nproc) PG_CONFIG="$PG_CONFIG" && \
+	make -C /usr/src/address_standardizer PG_CONFIG="$PG_CONFIG" install && \
+	/git-clone-retry.sh -b "$POSTGIS_TIGER_GEOCODER_BRANCH" --single-branch --depth 1 "$POSTGIS_TIGER_GEOCODER_REPO" /usr/src/postgis_tiger_geocoder && \
+	make -C /usr/src/postgis_tiger_geocoder -j$(nproc) PG_CONFIG="$PG_CONFIG" && \
+	make -C /usr/src/postgis_tiger_geocoder PG_CONFIG="$PG_CONFIG" install && \
 	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis
+	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis /usr/src/address_standardizer /usr/src/postgis_tiger_geocoder
 
 USER 26
