@@ -23,6 +23,7 @@ libldap-dev
 liblz4-dev
 libnuma-dev
 libpam0g-dev
+libpcre2-dev
 libperl-dev
 libproj-dev
 libprotobuf-c-dev
