@@ -150,7 +150,7 @@ RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
 	git clone -b "$POSTGIS_BRANCH" --single-branch --depth 1 "$POSTGIS_REPO" /usr/src/postgis && \
 	cd /usr/src/postgis && \
 	./autogen.sh && \
-	./configure --with-sfcgal && \
+	./configure --with-pgconfig="$PG_CONFIG" --with-sfcgal && \
 	make -j$(nproc) && \
 	make install && \
 	git clone -b "$ADDRESS_STANDARDIZER_BRANCH" --single-branch --depth 1 "$ADDRESS_STANDARDIZER_REPO" /usr/src/address_standardizer && \
