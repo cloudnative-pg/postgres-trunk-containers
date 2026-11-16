@@ -165,6 +165,9 @@ RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
 	make -C /usr/src/postgis_tiger_geocoder PG_CONFIG="$PG_CONFIG" install && \
 	apt-get purge -y --auto-remove $(cat /build-deps.txt) postgresql-common && \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+	# Fail if the purge removed a library the extensions link against
+	libs=$(ls "$($PG_CONFIG --pkglibdir)"/*postgis*.so* "$($PG_CONFIG --pkglibdir)"/*address_standardizer*.so*) && \
+	! ldd $libs | grep 'not found' && \
 	rm -rf /etc/apt/sources.list.d/pgdg.sources /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis /usr/src/address_standardizer /usr/src/postgis_tiger_geocoder
 
 USER 26
