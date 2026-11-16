@@ -128,19 +128,23 @@ ARG POSTGIS_REPO=https://github.com/postgis/postgis.git
 ARG POSTGIS_BRANCH=master
 # PostGIS 3.7 moved these extensions out of the main repository
 ARG ADDRESS_STANDARDIZER_REPO=https://github.com/postgis/address_standardizer.git
-ARG ADDRESS_STANDARDIZER_BRANCH=main
+# TODO: move back to main once there's an upgrade path from v3 to v4
+ARG ADDRESS_STANDARDIZER_BRANCH=v3.7.0
 ARG POSTGIS_TIGER_GEOCODER_REPO=https://git.osgeo.org/postgis/postgis_tiger_geocoder.git
 ARG POSTGIS_TIGER_GEOCODER_BRANCH=main
 
 RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
 	--mount=type=bind,source=git-clone-retry.sh,target=/git-clone-retry.sh \
 	apt-get update && \
+	# Install PGDG repo to have updated libs for postgis
+	apt-get install -y --no-install-recommends postgresql-common ca-certificates && \
+	/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
 	apt-get install -y --no-install-recommends \
 		$(cat /build-deps.txt) \
 		# runtime deps
 		libproj25 \
 		libpq5 \
-		libgdal36 \
+		libgdal39 \
 		libgeos-c1t64 \
 		libsfcgal2 \
 		libpcre2-8-0 \
@@ -159,8 +163,8 @@ RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
 	/git-clone-retry.sh -b "$POSTGIS_TIGER_GEOCODER_BRANCH" --single-branch --depth 1 "$POSTGIS_TIGER_GEOCODER_REPO" /usr/src/postgis_tiger_geocoder && \
 	make -C /usr/src/postgis_tiger_geocoder -j$(nproc) PG_CONFIG="$PG_CONFIG" && \
 	make -C /usr/src/postgis_tiger_geocoder PG_CONFIG="$PG_CONFIG" install && \
-	apt-get purge -y --auto-remove $(cat /build-deps.txt) && \
+	apt-get purge -y --auto-remove $(cat /build-deps.txt) postgresql-common && \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
-	rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis /usr/src/address_standardizer /usr/src/postgis_tiger_geocoder
+	rm -rf /etc/apt/sources.list.d/pgdg.sources /var/lib/apt/lists/* /var/cache/* /var/log/* /usr/src/postgis /usr/src/address_standardizer /usr/src/postgis_tiger_geocoder
 
 USER 26
