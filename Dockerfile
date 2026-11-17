@@ -53,7 +53,7 @@ RUN --mount=type=bind,source=build-deps.txt,target=/build-deps.txt \
 	usermod -u 26 postgres && \
 	# Build PostgreSQL
 	mkdir -p /usr/src/postgresql && \
-	/git-clone-retry.sh -b "$PG_BRANCH" --single-branch "$PG_REPO" /usr/src/postgresql && \
+	/git-clone-retry.sh -b "$PG_BRANCH" --single-branch --depth 1 "$PG_REPO" /usr/src/postgresql && \
 	cd /usr/src/postgresql && \
 	export LLVM_CONFIG="/usr/lib/llvm-19/bin/llvm-config" && \
 	export CLANG=clang-19 && \
