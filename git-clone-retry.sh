@@ -5,11 +5,11 @@
 # Meant for remotes that are known to time out often from CI runners.
 # The destination directory is wiped between attempts.
 #
-# Tunables: GIT_CLONE_RETRIES (default 5), GIT_CLONE_RETRY_DELAY (default 5s).
+# Tunables: GIT_CLONE_RETRIES (default 5), GIT_CLONE_RETRY_DELAY (default 15s, multiplied by the attempt number).
 set -u
 
 retries="${GIT_CLONE_RETRIES:-5}"
-delay="${GIT_CLONE_RETRY_DELAY:-5}"
+delay="${GIT_CLONE_RETRY_DELAY:-15}"
 
 if [ "$#" -lt 2 ]; then
 	echo "usage: $0 [git clone options...] <repository> <directory>" >&2
@@ -27,7 +27,7 @@ while [ "$i" -le "$retries" ]; do
 	rm -rf "$dest"
 	if [ "$i" -lt "$retries" ]; then
 		echo "git clone failed, retrying ($i/$retries)..." >&2
-		sleep "$delay"
+		sleep "$((delay * i))"
 	fi
 	i=$((i + 1))
 done
